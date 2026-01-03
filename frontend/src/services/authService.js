@@ -32,6 +32,7 @@ export const signup = async (email, password, fullName) => {
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include', // Important: Include cookies
       body: JSON.stringify({ email, password, fullName }),
     });
 
@@ -48,18 +49,22 @@ export const signup = async (email, password, fullName) => {
     }
 
     log.success('AUTH', 'Signup successful!', {
-      userId: data.user.id,
-      email: data.user.email
+      userId: data.data.user.id,
+      email: data.data.user.email
     });
 
     log.info('STORAGE', 'Storing tokens in localStorage');
-    localStorage.setItem('accessToken', data.accessToken);
-    localStorage.setItem('refreshToken', data.refreshToken);
-    localStorage.setItem('user', JSON.stringify(data.user));
+    localStorage.setItem('accessToken', data.data.accessToken);
+    localStorage.setItem('user', JSON.stringify(data.data.user));
 
     log.success('STORAGE', 'Tokens stored successfully');
 
-    return data;
+    // Return in expected format for AuthContext
+    return {
+      accessToken: data.data.accessToken,
+      user: data.data.user,
+      message: data.message
+    };
   } catch (error) {
     log.error('AUTH', 'Signup error', error.message);
     throw error;
@@ -80,6 +85,7 @@ export const login = async (email, password) => {
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include', // Important: Include cookies
       body: JSON.stringify({ email, password }),
     });
 
@@ -96,18 +102,22 @@ export const login = async (email, password) => {
     }
 
     log.success('AUTH', 'Login successful!', {
-      userId: data.user.id,
-      email: data.user.email
+      userId: data.data.user.id,
+      email: data.data.user.email
     });
 
     log.info('STORAGE', 'Storing tokens in localStorage');
-    localStorage.setItem('accessToken', data.accessToken);
-    localStorage.setItem('refreshToken', data.refreshToken);
-    localStorage.setItem('user', JSON.stringify(data.user));
+    localStorage.setItem('accessToken', data.data.accessToken);
+    localStorage.setItem('user', JSON.stringify(data.data.user));
 
     log.success('STORAGE', 'Tokens stored successfully');
 
-    return data;
+    // Return in expected format for AuthContext
+    return {
+      accessToken: data.data.accessToken,
+      user: data.data.user,
+      message: data.message
+    };
   } catch (error) {
     log.error('AUTH', 'Login error', error.message);
     throw error;
@@ -242,22 +252,16 @@ export const fetchWithAuth = async (url, options = {}) => {
 const refreshAccessToken = async () => {
   log.info('AUTH', 'Starting token refresh');
 
-  const refreshToken = localStorage.getItem('refreshToken');
-
-  if (!refreshToken) {
-    log.error('AUTH', 'No refresh token found');
-    return false;
-  }
-
   try {
     log.info('AUTH', 'Sending POST request to /auth/refresh');
 
+    // Note: Refresh token is sent automatically via httpOnly cookie
     const response = await fetch(`${API_URL}/auth/refresh`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ refreshToken }),
+      credentials: 'include', // Important: Include cookies in request
     });
 
     log.info('AUTH', `Refresh response status: ${response.status} ${response.statusText}`);
@@ -272,7 +276,7 @@ const refreshAccessToken = async () => {
     log.success('AUTH', 'New access token received');
     log.info('STORAGE', 'Updating access token in localStorage');
 
-    localStorage.setItem('accessToken', data.accessToken);
+    localStorage.setItem('accessToken', data.data.accessToken);
 
     log.success('AUTH', 'Access token refreshed successfully');
     return true;
