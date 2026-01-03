@@ -128,6 +128,11 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
+    // Check if email is verified
+    if (!user.emailVerified) {
+      throw new UnauthorizedException('Please verify your email address before logging in. Check your inbox for the verification link.');
+    }
+
     // Reset failed attempts on successful login
     await this.prisma.user.update({
       where: { id: user.id },

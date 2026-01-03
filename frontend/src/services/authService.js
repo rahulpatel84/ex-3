@@ -53,15 +53,11 @@ export const signup = async (email, password, fullName) => {
       email: data.data.user.email
     });
 
-    log.info('STORAGE', 'Storing tokens in localStorage');
-    localStorage.setItem('accessToken', data.data.accessToken);
-    localStorage.setItem('user', JSON.stringify(data.data.user));
+    log.info('AUTH', 'User needs to verify email before logging in');
 
-    log.success('STORAGE', 'Tokens stored successfully');
-
-    // Return in expected format for AuthContext
+    // Don't store tokens - user must verify email first
+    // Return response data
     return {
-      accessToken: data.data.accessToken,
       user: data.data.user,
       message: data.message
     };

@@ -41,11 +41,13 @@ const VerifyEmailPage = () => {
         if (response.ok) {
           console.log('✅ [VERIFY EMAIL] Email verified successfully');
           setStatus('success');
-          setMessage(data.message || 'Email verified successfully!');
+          setMessage('Email verified successfully! You can now log in.');
 
           // Redirect to login after 3 seconds
           setTimeout(() => {
-            navigate('/login');
+            navigate('/login', {
+              state: { message: 'Email verified! You can now log in to your account.' }
+            });
           }, 3000);
         } else {
           console.error('❌ [VERIFY EMAIL] Verification failed:', data.message);

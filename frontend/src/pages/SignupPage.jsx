@@ -245,13 +245,24 @@ const SignupPage = () => {
     try {
       console.log('📝 [SIGNUP PAGE] Calling signup function...');
 
-      // Call signup from AuthContext
-      await signup(formData.email, formData.password, formData.fullName);
+      // Call signup from AuthContext (but don't auto-login)
+      const response = await signup(formData.email, formData.password, formData.fullName);
 
-      console.log('✅ [SIGNUP PAGE] Signup successful! Auto-logged in.');
+      console.log('✅ [SIGNUP PAGE] Signup successful!');
 
-      // Redirect to dashboard (user is now logged in)
-      navigate('/dashboard', { replace: true });
+      // Show success message and redirect to a verification pending page
+      // For now, we'll show a success message and redirect to login
+      setErrors({
+        general: 'Account created successfully! Please check your email to verify your account before logging in.'
+      });
+
+      // Redirect to login after 3 seconds
+      setTimeout(() => {
+        navigate('/login', {
+          replace: true,
+          state: { message: 'Please verify your email before logging in. Check your inbox for the verification link.' }
+        });
+      }, 3000);
 
     } catch (error) {
       console.error('❌ [SIGNUP PAGE] Signup failed:', error.message);
@@ -340,8 +351,16 @@ const SignupPage = () => {
           </div>
 
           {errors.general && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-lg">
-              <p className="text-sm text-red-600">{errors.general}</p>
+            <div className={`mb-6 p-4 rounded-lg ${
+              errors.general.includes('successfully')
+                ? 'bg-green-50 border border-green-100'
+                : 'bg-red-50 border border-red-100'
+            }`}>
+              <p className={`text-sm ${
+                errors.general.includes('successfully')
+                  ? 'text-green-600'
+                  : 'text-red-600'
+              }`}>{errors.general}</p>
             </div>
           )}
 

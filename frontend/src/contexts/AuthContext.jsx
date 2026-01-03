@@ -143,8 +143,8 @@ export const AuthProvider = ({ children }) => {
    *
    * What it does:
    * 1. Calls authService.signup() (makes API request)
-   * 2. If successful: Sets user state (auto-login after signup)
-   * 3. Returns user data to component
+   * 2. If successful: Does NOT auto-login (user must verify email first)
+   * 3. Returns response data to component
    *
    * Usage:
    * const { signup } = useAuth();
@@ -153,7 +153,7 @@ export const AuthProvider = ({ children }) => {
   const signup = async (email, password, fullName) => {
     try {
       const data = await authService.signup(email, password, fullName);
-      setUser(data.user);
+      // Don't set user state - user needs to verify email first
       return data;
     } catch (error) {
       throw error;

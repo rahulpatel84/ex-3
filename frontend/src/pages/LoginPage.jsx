@@ -13,6 +13,7 @@ const LoginPage = () => {
   });
 
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -20,7 +21,14 @@ const LoginPage = () => {
       console.log('ℹ️ [LOGIN PAGE] User already logged in, redirecting to dashboard');
       navigate('/dashboard');
     }
-  }, [isLoggedIn, navigate]);
+
+    // Show success message if redirected from signup or email verification
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message);
+      // Clear the message from history so it doesn't show on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [isLoggedIn, navigate, location]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -85,6 +93,12 @@ const LoginPage = () => {
               </Link>
             </p>
           </div>
+
+          {successMessage && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-100 rounded-lg">
+              <p className="text-sm text-green-600">{successMessage}</p>
+            </div>
+          )}
 
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-lg">
