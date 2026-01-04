@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './modules/auth/auth.module';
+import { CategoryModule } from './modules/category/category.module';
 import { PrismaService } from './services/prisma.service';
 import { RedisService } from './services/redis.service';
 import { AppController } from './app.controller';
@@ -33,6 +34,7 @@ import { AppController } from './app.controller';
     ]),
     // Feature modules
     AuthModule,
+    CategoryModule,
   ],
   controllers: [AppController],
   providers: [PrismaService, RedisService],

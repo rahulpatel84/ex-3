@@ -43,4 +43,12 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   get auditLog() {
     return this.prisma.auditLog;
   }
+
+  get category() {
+    return this.prisma.category;
+  }
+
+  get expense() {
+    return this.prisma.expense;
+  }
 }

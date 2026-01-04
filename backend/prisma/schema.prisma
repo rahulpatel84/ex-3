@@ -32,6 +32,8 @@ model User {
   passwordResets        PasswordReset[]
   emailVerifications    EmailVerification[]
   auditLogs             AuditLog[]
+  categories            Category[]
+  expenses              Expense[]
 
   @@map("users")
 }
@@ -90,4 +92,51 @@ model AuditLog {
   @@index([action])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// Category Model - Expense categories (Food, Transport, etc.)
+model Category {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  name        String
+  icon        String?   // Emoji or icon name (e.g., "🍔" or "food")
+  color       String    @default("#6366f1") // Hex color code
+  type        String    @default("expense") // "expense" or "income"
+  isDefault   Boolean   @default(false) @map("is_default") // System default categories
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expenses    Expense[]
+
+  @@unique([userId, name]) // User can't have duplicate category names
+  @@index([userId])
+  @@map("categories")
+}
+
+// Expense Model - Individual expense/income transactions
+model Expense {
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  categoryId    String    @map("category_id")
+  amount        Float     // Amount in user's currency
+  description   String?
+  notes         String?   @db.Text
+  date          DateTime  @default(now()) // Transaction date
+  type          String    @default("expense") // "expense" or "income"
+  paymentMethod String?   @map("payment_method") // "cash", "card", "bank_transfer", etc.
+  receiptUrl    String?   @map("receipt_url") // URL to uploaded receipt (future feature)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category      Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([categoryId])
+  @@index([date])
+  @@index([type])
+  @@map("expenses")
 }
