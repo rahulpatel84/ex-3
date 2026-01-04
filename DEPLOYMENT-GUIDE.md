@@ -1,4 +1,23 @@
-# 🚀 Deployment Guide - ExpenseTracker
+
+╔════════════════════════════════════════════════════════════════╗
+║                                                                ║
+║   🚀 ExpenseAI Backend is running!                            ║
+║                                                                ║
+║   📍 Server:     http://localhost:3001                         ║
+║   🔗 API:        http://localhost:3001/api                     ║
+║   🌐 Frontend:   https://expense-v2-73arkysd0-rahul-patels-projects-d1834862.vercel.app                    ║
+║   📊 Health:     http://localhost:3001/api/health              ║
+║                                                                ║
+║   Environment:   production                               ║
+║                                                                ║
+╚════════════════════════════════════════════════════════════════╝
+  
+✅ Email sent to test1@test.com: Verify your email address
+📝 Audit log: USER_SIGNUP by 62b5371a-e5b5-4d40-b3ea-83285dcd4a84
+✅ User signed up: test1@test.com
+✅ Email sent to test1s@test.com: Verify your email address
+📝 Audit log: USER_SIGNUP by cba59c69-4c07-4933-afdf-e94c3d8f82c4
+✅ User signed up: test1s@test.com# 🚀 Deployment Guide - ExpenseTracker
 
 Complete guide to deploy your app to production for **FREE**!
 
@@ -8,6 +27,20 @@ Complete guide to deploy your app to production for **FREE**!
 
 - **Backend + Database** → Railway (Free tier)
 - **Frontend** → Vercel (Free tier, unlimited)
+
+---
+
+## ✅ Pre-Deployment Checklist
+
+Before deploying, make sure these configuration files exist in your `backend/` folder:
+
+- ✅ `package.json` - Scripts and dependencies
+- ✅ `railway.json` - Railway build configuration  
+- ✅ `nixpacks.toml` - Nixpacks build settings (ensures all deps install)
+- ✅ `.npmrc` - NPM configuration (prevents skipping devDependencies)
+- ✅ `prisma/schema.prisma` - Database schema
+
+**These files are already set up for you!** Just make sure they're committed to git.
 
 ---
 
@@ -259,17 +292,37 @@ Your backend needs to allow requests from your Vercel frontend:
 
 ## 🔧 Common Issues
 
-### Issue 1: Backend "Application failed to respond"
+### Issue 1: "Cannot find module '/app/dist/main'" Error
+**Problem**: Railway can't find the built application files
+
+**Fix**: This happens when the TypeScript build doesn't run. We've added 3 files to fix this:
+1. `railway.json` - Defines build and start commands
+2. `nixpacks.toml` - Ensures all dependencies are installed
+3. `.npmrc` - Prevents skipping devDependencies
+
+**Verify the fix**:
+1. Make sure these 3 files exist in your `backend/` folder
+2. Commit and push them to GitHub:
+   ```bash
+   git add railway.json nixpacks.toml .npmrc
+   git commit -m "Fix Railway deployment configuration"
+   git push
+   ```
+3. Railway will auto-redeploy
+4. Check logs - you should see "npm run build" executing
+
+### Issue 2: Backend "Application failed to respond"
 **Fix**: Check Railway logs (click service → Deployments → View Logs)
 - Missing environment variables?
 - Database migrations not run?
+- Build command failing?
 
-### Issue 2: Frontend can't connect to backend
+### Issue 3: Frontend can't connect to backend
 **Fix**: Check CORS settings and `VITE_API_URL`
 - Make sure backend allows your Vercel domain
 - Check browser console for errors
 
-### Issue 3: Database connection error
+### Issue 4: Database connection error
 **Fix**: Check `DATABASE_URL` is correct
 - Copy exact string from Railway PostgreSQL Variables
 - Make sure it starts with `postgresql://`
