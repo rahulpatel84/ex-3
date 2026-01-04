@@ -1,6 +1,5 @@
 # Dependencies
 node_modules/
-package-lock.json
 
 # Environment variables
 .env
@@ -27,9 +26,6 @@ Thumbs.db
 # Database
 *.db
 *.sqlite
-
-# Prisma
-prisma/migrations/
 
 # TypeScript
 *.tsbuildinfo
