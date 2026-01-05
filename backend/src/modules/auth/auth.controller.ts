@@ -18,6 +18,7 @@ import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { UpdateSettingsDto } from './dto/update-settings.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -194,6 +195,23 @@ export class AuthController {
       data: {
         user: req.user,
       },
+    };
+  }
+
+  /**
+   * PUT /auth/settings
+   * Update user settings (currency, profile, etc.)
+   */
+  @Put('settings')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async updateSettings(@Body() updateSettingsDto: UpdateSettingsDto, @Req() req: any) {
+    const user = await this.authService.updateSettings(req.user.id, updateSettingsDto);
+
+    return {
+      success: true,
+      message: 'Settings updated successfully',
+      data: user,
     };
   }
 }

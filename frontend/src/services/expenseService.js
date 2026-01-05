@@ -77,6 +77,24 @@ export const updateExpense = async (id, expenseData) => {
 };
 
 /**
+ * UPDATE USER SETTINGS
+ */
+export const updateUserSettings = async (settings) => {
+  const response = await fetchWithAuth('/auth/settings', {
+    method: 'PUT',
+    body: JSON.stringify(settings),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to update settings');
+  }
+
+  return data.data;
+};
+
+/**
  * DELETE EXPENSE
  */
 export const deleteExpense = async (id) => {

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getAllExpenses, createExpense, deleteExpense, getAnalytics, getAllCategories } from '../services/expenseService';
+import { getAllExpenses, createExpense, deleteExpense, updateExpense, getAnalytics, getAllCategories } from '../services/expenseService';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
 import Sidebar from '../components/Sidebar';
@@ -86,6 +86,16 @@ const Dashboard = () => {
       await loadData();
     } catch (err) {
       setError(err.message);
+    }
+  };
+
+  const handleUpdateExpense = async (id, data) => {
+    try {
+      await updateExpense(id, data);
+      await loadData();
+    } catch (err) {
+      setError(err.message);
+      throw err;
     }
   };
 
@@ -437,7 +447,9 @@ const Dashboard = () => {
                 {activeTab === 'transactions' && (
                   <TransactionTable
                     expenses={expenses}
+                    categories={categories}
                     onDelete={handleDeleteExpense}
+                    onUpdate={handleUpdateExpense}
                     formatCurrency={formatCurrency}
                   />
                 )}

@@ -260,6 +260,21 @@ export const AuthProvider = ({ children }) => {
    * - resetPassword: Function to reset password
    * - getUserProfile: Function to fetch fresh user data
    */
+  /**
+   * REFRESH USER
+   * Fetch latest user data from server (useful after settings update)
+   */
+  const refreshUser = async () => {
+    try {
+      const userData = await authService.getCurrentUser();
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+      console.log('✅ [AUTH CONTEXT] User data refreshed');
+    } catch (error) {
+      console.error('❌ [AUTH CONTEXT] Failed to refresh user:', error);
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -270,6 +285,7 @@ export const AuthProvider = ({ children }) => {
     forgotPassword,
     resetPassword,
     getUserProfile,
+    refreshUser,
   };
 
   // ============================================================

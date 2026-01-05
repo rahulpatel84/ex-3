@@ -462,4 +462,51 @@ export class AuthService {
       await this.audit.logFailedLogin(user.email, ipAddress, userAgent);
     }
   }
+
+  /**
+   * Get user profile
+   */
+  async getUserProfile(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        currencyCode: true,
+        avatarUrl: true,
+        emailVerified: true,
+        createdAt: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
+  }
+
+  /**
+   * Update user settings (currency, profile info, etc.)
+   */
+  async updateSettings(userId: string, updateData: { currencyCode?: string; fullName?: string }) {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        currencyCode: true,
+        avatarUrl: true,
+        emailVerified: true,
+        createdAt: true,
+      },
+    });
+
+    console.log(`✅ User settings updated: ${user.email}`);
+
+    return user;
+  }
 }
