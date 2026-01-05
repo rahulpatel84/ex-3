@@ -476,7 +476,20 @@ export class AuthService {
         currencyCode: true,
         avatarUrl: true,
         emailVerified: true,
+        currentHouseholdId: true,
         createdAt: true,
+        householdMemberships: {
+          where: { status: 'active' },
+          include: {
+            household: {
+              select: {
+                id: true,
+                name: true,
+                description: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -484,7 +497,28 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
 
-    return user;
+    // Get current household details if set
+    let currentHousehold = null;
+    if (user.currentHouseholdId) {
+      const householdMembership = user.householdMemberships.find(
+        m => m.householdId === user.currentHouseholdId
+      );
+      if (householdMembership) {
+        currentHousehold = {
+          ...householdMembership.household,
+          role: householdMembership.role,
+        };
+      }
+    }
+
+    return {
+      ...user,
+      currentHousehold,
+      households: user.householdMemberships.map(m => ({
+        ...m.household,
+        role: m.role,
+      })),
+    };
   }
 
   /**

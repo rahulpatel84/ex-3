@@ -13,43 +13,46 @@ datasource db {
 
 // User Model - Core user account information
 model User {
-  id                    String    @id @default(uuid())
-  fullName              String    @map("full_name")
-  email                 String    @unique
-  passwordHash          String    @map("password_hash")
-  avatarUrl             String?   @map("avatar_url")
-  currencyCode          String    @default("USD") @map("currency_code")
-  emailVerified         Boolean   @default(false) @map("email_verified")
-  onboardingCompleted   Boolean   @default(false) @map("onboarding_completed")
-  lockedUntil           DateTime? @map("locked_until")
-  failedLoginAttempts   Int       @default(0) @map("failed_login_attempts")
-  lastFailedLoginAt     DateTime? @map("last_failed_login_at")
-  lastLoginAt           DateTime? @map("last_login_at")
-  createdAt             DateTime  @default(now()) @map("created_at")
-  updatedAt             DateTime  @updatedAt @map("updated_at")
+  id                  String    @id @default(uuid())
+  fullName            String    @map("full_name")
+  email               String    @unique
+  passwordHash        String    @map("password_hash")
+  avatarUrl           String?   @map("avatar_url")
+  currencyCode        String    @default("USD") @map("currency_code")
+  emailVerified       Boolean   @default(false) @map("email_verified")
+  onboardingCompleted Boolean   @default(false) @map("onboarding_completed")
+  lockedUntil         DateTime? @map("locked_until")
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
+  lastFailedLoginAt   DateTime? @map("last_failed_login_at")
+  lastLoginAt         DateTime? @map("last_login_at")
+  currentHouseholdId  String?   @map("current_household_id") // Active household
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  passwordResets        PasswordReset[]
-  emailVerifications    EmailVerification[]
-  auditLogs             AuditLog[]
-  categories            Category[]
-  expenses              Expense[]
+  passwordResets       PasswordReset[]
+  emailVerifications   EmailVerification[]
+  auditLogs            AuditLog[]
+  categories           Category[]
+  expenses             Expense[]
+  householdMemberships HouseholdMember[]
+  createdHouseholds    Household[]         @relation("HouseholdCreator")
 
   @@map("users")
 }
 
 // Password Reset Model - Manages password reset tokens
 model PasswordReset {
-  id          String    @id @default(uuid())
-  userId      String    @map("user_id")
-  tokenHash   String    @map("token_hash")
-  expiresAt   DateTime  @map("expires_at")
-  usedAt      DateTime? @map("used_at")
-  ipAddress   String?   @map("ip_address")
-  createdAt   DateTime  @default(now()) @map("created_at")
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  tokenHash String    @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  ipAddress String?   @map("ip_address")
+  createdAt DateTime  @default(now()) @map("created_at")
 
   // Relations
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([tokenHash])
   @@map("password_resets")
@@ -57,17 +60,17 @@ model PasswordReset {
 
 // Email Verification Model - Manages email verification tokens
 model EmailVerification {
-  id          String    @id @default(uuid())
-  userId      String    @map("user_id")
-  email       String
-  tokenHash   String    @map("token_hash")
-  expiresAt   DateTime  @map("expires_at")
-  verifiedAt  DateTime? @map("verified_at")
-  ipAddress   String?   @map("ip_address")
-  createdAt   DateTime  @default(now()) @map("created_at")
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  email      String
+  tokenHash  String    @map("token_hash")
+  expiresAt  DateTime  @map("expires_at")
+  verifiedAt DateTime? @map("verified_at")
+  ipAddress  String?   @map("ip_address")
+  createdAt  DateTime  @default(now()) @map("created_at")
 
   // Relations
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([tokenHash])
   @@map("email_verifications")
@@ -75,18 +78,18 @@ model EmailVerification {
 
 // Audit Log Model - Tracks all security-related events
 model AuditLog {
-  id            String    @id @default(uuid())
-  userId        String?   @map("user_id")
-  action        String
-  resourceType  String?   @map("resource_type")
-  resourceId    String?   @map("resource_id")
-  ipAddress     String?   @map("ip_address")
-  userAgent     String?   @map("user_agent")
-  metadata      Json?
-  createdAt     DateTime  @default(now()) @map("created_at")
+  id           String   @id @default(uuid())
+  userId       String?  @map("user_id")
+  action       String
+  resourceType String?  @map("resource_type")
+  resourceId   String?  @map("resource_id")
+  ipAddress    String?  @map("ip_address")
+  userAgent    String?  @map("user_agent")
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at")
 
   // Relations
-  user          User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([action])
@@ -94,24 +97,91 @@ model AuditLog {
   @@map("audit_logs")
 }
 
-// Category Model - Expense categories (Food, Transport, etc.)
-model Category {
+// Household Model - Shared workspace for expenses
+model Household {
+  id          String   @id @default(uuid())
+  name        String // "Personal", "Family", "Business"
+  description String?
+  createdBy   String   @map("created_by") // Owner user ID
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  creator     User              @relation("HouseholdCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  members     HouseholdMember[]
+  categories  Category[]
+  expenses    Expense[]
+  invitations Invitation[]
+
+  @@index([createdBy])
+  @@map("households")
+}
+
+// HouseholdMember Model - User membership in households with roles
+model HouseholdMember {
   id          String    @id @default(uuid())
+  householdId String    @map("household_id")
   userId      String    @map("user_id")
-  name        String
-  icon        String?   // Emoji or icon name (e.g., "🍔" or "food")
-  color       String    @default("#6366f1") // Hex color code
-  type        String    @default("expense") // "expense" or "income"
-  isDefault   Boolean   @default(false) @map("is_default") // System default categories
+  role        String    @default("member") // "owner", "admin", "member", "viewer"
+  invitedBy   String?   @map("invited_by") // User ID who invited
+  invitedAt   DateTime  @default(now()) @map("invited_at")
+  acceptedAt  DateTime? @map("accepted_at")
+  status      String    @default("active") // "pending", "active", "declined", "removed"
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expenses    Expense[]
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([householdId, userId]) // User can only be member once per household
+  @@index([householdId])
+  @@index([userId])
+  @@map("household_members")
+}
+
+// Invitation Model - Email invitations for joining households
+model Invitation {
+  id          String    @id @default(uuid())
+  householdId String    @map("household_id")
+  email       String
+  role        String    @default("member")
+  invitedBy   String    @map("invited_by") // User ID
+  token       String    @unique
+  expiresAt   DateTime  @map("expires_at")
+  acceptedAt  DateTime? @map("accepted_at")
+  declinedAt  DateTime? @map("declined_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([email])
+  @@map("invitations")
+}
+
+// Category Model - Expense categories (Food, Transport, etc.)
+model Category {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  householdId String?  @map("household_id") // NULL for backward compatibility, required after migration
+  name        String
+  icon        String? // Emoji or icon name (e.g., "🍔" or "food")
+  color       String   @default("#6366f1") // Hex color code
+  type        String   @default("expense") // "expense" or "income"
+  isDefault   Boolean  @default(false) @map("is_default") // System default categories
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  household Household? @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  expenses  Expense[]
 
   @@unique([userId, name]) // User can't have duplicate category names
   @@index([userId])
+  @@index([householdId])
   @@map("categories")
 }
 
@@ -119,8 +189,9 @@ model Category {
 model Expense {
   id            String    @id @default(uuid())
   userId        String    @map("user_id")
+  householdId   String?   @map("household_id") // NULL for backward compatibility, required after migration
   categoryId    String    @map("category_id")
-  amount        Float     // Amount in user's currency
+  amount        Float // Amount in user's currency
   description   String?
   notes         String?   @db.Text
   date          DateTime  @default(now()) // Transaction date
@@ -133,10 +204,12 @@ model Expense {
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category      Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  household Household? @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  category  Category   @relation(fields: [categoryId], references: [id], onDelete: Restrict)
 
   @@index([userId])
+  @@index([householdId])
   @@index([categoryId])
   @@index([date])
   @@index([type])

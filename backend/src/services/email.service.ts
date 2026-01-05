@@ -199,4 +199,62 @@ export class EmailService {
 
     await this.sendEmail(email, 'Your password was changed', html);
   }
+
+  async sendHouseholdInvitation(email: string, inviterName: string, householdName: string, token: string): Promise<void> {
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
+    const invitationLink = `${frontendUrl}/household/invite/${token}`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: 'Arial', sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; }
+          .button { display: inline-block; background: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%); color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 20px 0; }
+          .footer { background: #f9fafb; padding: 20px; text-align: center; font-size: 14px; color: #6b7280; border-radius: 0 0 8px 8px; }
+          .info-box { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>You're Invited! 🎉</h1>
+          </div>
+          <div class="content">
+            <p>Hi there!</p>
+            <p><strong>${inviterName}</strong> has invited you to join their household on ExpenseAI:</p>
+            <div class="info-box">
+              <strong>Household:</strong> ${householdName}
+            </div>
+            <p>By joining this household, you'll be able to:</p>
+            <ul>
+              <li>View and manage shared expenses</li>
+              <li>Track household income and spending</li>
+              <li>Collaborate with other members</li>
+              <li>Access real-time financial insights</li>
+            </ul>
+            <div style="text-align: center;">
+              <a href="${invitationLink}" class="button">Accept Invitation</a>
+            </div>
+            <p style="color: #6b7280; font-size: 14px;">Or copy and paste this link into your browser:</p>
+            <p style="color: #6b7280; font-size: 12px; word-break: break-all;">${invitationLink}</p>
+            <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+              This invitation will expire in <strong>7 days</strong>.
+            </p>
+            <p style="color: #6b7280; font-size: 14px;">If you don't want to join, you can safely ignore this email.</p>
+          </div>
+          <div class="footer">
+            <p>ExpenseAI - Your Smart Expense Tracker</p>
+            <p style="font-size: 12px;">This is an automated email, please do not reply.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    await this.sendEmail(email, `${inviterName} invited you to join ${householdName}`, html);
+  }
 }

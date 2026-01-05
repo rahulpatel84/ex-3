@@ -7,12 +7,22 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 export class CategoryService {
   constructor(private prisma: PrismaService) {}
 
+  private async getUserHouseholdId(userId: string): Promise<string | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { currentHouseholdId: true },
+    });
+    return user?.currentHouseholdId || null;
+  }
+
   /**
-   * Get all categories for a user
+   * Get all categories for a user (from their current household)
    */
   async findAll(userId: string) {
+    const householdId = await this.getUserHouseholdId(userId);
+    
     return this.prisma.category.findMany({
-      where: { userId },
+      where: householdId ? { householdId } : { userId },
       orderBy: [{ type: 'asc' }, { name: 'asc' }],
     });
   }
@@ -21,8 +31,10 @@ export class CategoryService {
    * Get a single category by ID
    */
   async findOne(id: string, userId: string) {
+    const householdId = await this.getUserHouseholdId(userId);
+    
     const category = await this.prisma.category.findFirst({
-      where: { id, userId },
+      where: householdId ? { id, householdId } : { id, userId },
     });
 
     if (!category) {
@@ -37,10 +49,14 @@ export class CategoryService {
    */
   async create(userId: string, createCategoryDto: CreateCategoryDto) {
     const { name, icon, color, type } = createCategoryDto;
+    const householdId = await this.getUserHouseholdId(userId);
 
-    // Check if category name already exists for this user
+    // Check if category name already exists for this user/household
     const existing = await this.prisma.category.findFirst({
-      where: {
+      where: householdId ? {
+        householdId,
+        name,
+      } : {
         userId,
         name,
       },
@@ -53,6 +69,7 @@ export class CategoryService {
     return this.prisma.category.create({
       data: {
         userId,
+        householdId,
         name,
         icon: icon || '📦',
         color: color || '#6366f1',
@@ -66,8 +83,9 @@ export class CategoryService {
    * Update a category
    */
   async update(id: string, userId: string, updateCategoryDto: UpdateCategoryDto) {
-    // Check if category exists and belongs to user
+    // Check if category exists and user has access
     const category = await this.findOne(id, userId);
+    const householdId = await this.getUserHouseholdId(userId);
 
     // Prevent updating default categories (optional - you can remove this)
     if (category.isDefault) {
@@ -77,7 +95,11 @@ export class CategoryService {
     // If updating name, check for duplicates
     if (updateCategoryDto.name) {
       const duplicate = await this.prisma.category.findFirst({
-        where: {
+        where: householdId ? {
+          householdId,
+          name: updateCategoryDto.name,
+          id: { not: id }, // Exclude current category
+        } : {
           userId,
           name: updateCategoryDto.name,
           id: { not: id }, // Exclude current category

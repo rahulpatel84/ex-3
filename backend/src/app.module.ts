@@ -4,6 +4,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './modules/auth/auth.module';
 import { CategoryModule } from './modules/category/category.module';
 import { ExpenseModule } from './modules/expense/expense.module';
+import { HouseholdModule } from './modules/household/household.module';
 import { PrismaService } from './services/prisma.service';
 import { RedisService } from './services/redis.service';
 import { AppController } from './app.controller';
@@ -37,6 +38,7 @@ import { AppController } from './app.controller';
     AuthModule,
     CategoryModule,
     ExpenseModule,
+    HouseholdModule,
   ],
   controllers: [AppController],
   providers: [PrismaService, RedisService],

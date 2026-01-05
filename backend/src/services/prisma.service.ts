@@ -51,4 +51,16 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   get expense() {
     return this.prisma.expense;
   }
+
+  get household() {
+    return this.prisma.household;
+  }
+
+  get householdMember() {
+    return this.prisma.householdMember;
+  }
+
+  get invitation() {
+    return this.prisma.invitation;
+  }
 }

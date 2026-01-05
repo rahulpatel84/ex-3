@@ -7,8 +7,18 @@ import { UpdateExpenseDto } from './dto/update-expense.dto';
 export class ExpenseService {
   constructor(private prisma: PrismaService) {}
 
+  private async getUserHouseholdId(userId: string): Promise<string | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { currentHouseholdId: true },
+    });
+    return user?.currentHouseholdId || null;
+  }
+
   async findAll(userId: string, filters?: { startDate?: string; endDate?: string; type?: string; categoryId?: string; includeDeleted?: string }) {
-    const where: any = { userId };
+    const householdId = await this.getUserHouseholdId(userId);
+    
+    const where: any = householdId ? { householdId } : { userId };
 
     // By default, exclude deleted expenses unless specifically requested
     if (filters?.includeDeleted !== 'true') {
@@ -75,6 +85,12 @@ export class ExpenseService {
             email: true,
           },
         },
+        household: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 
@@ -82,7 +98,9 @@ export class ExpenseService {
       throw new NotFoundException('Expense not found');
     }
 
-    if (expense.userId !== userId) {
+    // Check if user has access (either their own expense or in the household)
+    const householdId = await this.getUserHouseholdId(userId);
+    if (expense.userId !== userId && expense.householdId !== householdId) {
       throw new ForbiddenException('You do not have permission to access this expense');
     }
 
@@ -90,7 +108,9 @@ export class ExpenseService {
   }
 
   async create(userId: string, createExpenseDto: CreateExpenseDto) {
-    // Verify category exists and belongs to user
+    const householdId = await this.getUserHouseholdId(userId);
+
+    // Verify category exists and is accessible (either user's category or household's category)
     const category = await this.prisma.category.findUnique({
       where: { id: createExpenseDto.categoryId },
     });
@@ -99,7 +119,10 @@ export class ExpenseService {
       throw new NotFoundException('Category not found');
     }
 
-    if (category.userId !== userId) {
+    // Check if category belongs to user's household or directly to user
+    if (householdId && category.householdId !== householdId) {
+      throw new ForbiddenException('You do not have permission to use this category');
+    } else if (!householdId && category.userId !== userId) {
       throw new ForbiddenException('You do not have permission to use this category');
     }
 
@@ -107,6 +130,7 @@ export class ExpenseService {
     const expense = await this.prisma.expense.create({
       data: {
         userId,
+        householdId,
         categoryId: createExpenseDto.categoryId,
         amount: createExpenseDto.amount,
         description: createExpenseDto.description,
@@ -133,6 +157,12 @@ export class ExpenseService {
             email: true,
           },
         },
+        household: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 
@@ -140,10 +170,11 @@ export class ExpenseService {
   }
 
   async update(id: string, userId: string, updateExpenseDto: UpdateExpenseDto) {
-    // Check if expense exists and belongs to user
+    // Check if expense exists and user has access
     const expense = await this.findOne(id, userId);
+    const householdId = await this.getUserHouseholdId(userId);
 
-    // If updating category, verify it exists and belongs to user
+    // If updating category, verify it exists and is accessible
     if (updateExpenseDto.categoryId) {
       const category = await this.prisma.category.findUnique({
         where: { id: updateExpenseDto.categoryId },
@@ -153,7 +184,10 @@ export class ExpenseService {
         throw new NotFoundException('Category not found');
       }
 
-      if (category.userId !== userId) {
+      // Check if category belongs to user's household or directly to user
+      if (householdId && category.householdId !== householdId) {
+        throw new ForbiddenException('You do not have permission to use this category');
+      } else if (!householdId && category.userId !== userId) {
         throw new ForbiddenException('You do not have permission to use this category');
       }
     }
@@ -201,9 +235,31 @@ export class ExpenseService {
     });
   }
 
+  // Find all deleted expenses for audit trail
+  async findAllDeleted(userId: string) {
+    const householdId = await this.getUserHouseholdId(userId);
+    
+    return this.prisma.expense.findMany({
+      where: householdId ? {
+        householdId,
+        deletedAt: { not: null },
+      } : {
+        userId,
+        deletedAt: { not: null },
+      },
+      include: {
+        category: { select: { id: true, name: true, icon: true, color: true, type: true } },
+        user: { select: { id: true, fullName: true, email: true } },
+      },
+      orderBy: { deletedAt: 'desc' },
+    });
+  }
+
   // Analytics methods
   async getAnalytics(userId: string, startDate?: string, endDate?: string) {
-    const where: any = { userId, deletedAt: null }; // Exclude deleted expenses from analytics
+    const householdId = await this.getUserHouseholdId(userId);
+    
+    const where: any = householdId ? { householdId, deletedAt: null } : { userId, deletedAt: null }; // Exclude deleted expenses from analytics
 
     if (startDate || endDate) {
       where.date = {};
