@@ -5,6 +5,7 @@ import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Toolti
 import { format } from 'date-fns';
 import Sidebar from '../components/Sidebar';
 import StatCard from '../components/StatCard';
+import TransactionTable from '../components/TransactionTable';
 
 const CHART_COLORS = ['#475569', '#64748b', '#94a3b8', '#cbd5e1', '#e2e8f0', '#f1f5f9'];
 
@@ -282,6 +283,16 @@ const Dashboard = () => {
                   Overview
                 </button>
                 <button
+                  onClick={() => setActiveTab('transactions')}
+                  className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    activeTab === 'transactions'
+                      ? 'bg-gray-100 text-gray-900'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Transactions
+                </button>
+                <button
                   onClick={() => setActiveTab('history')}
                   className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
                     activeTab === 'history'
@@ -420,6 +431,15 @@ const Dashboard = () => {
                       </div>
                     </div>
                   </div>
+                )}
+
+                {/* Transactions Tab - NEW TABLE VIEW */}
+                {activeTab === 'transactions' && (
+                  <TransactionTable
+                    expenses={expenses}
+                    onDelete={handleDeleteExpense}
+                    formatCurrency={formatCurrency}
+                  />
                 )}
 
                 {/* History Tab */}
