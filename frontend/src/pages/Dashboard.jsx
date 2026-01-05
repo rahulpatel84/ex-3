@@ -1,21 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getAllExpenses, createExpense, deleteExpense, getAnalytics, getAllCategories, createCategory } from '../services/expenseService';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { getAllExpenses, createExpense, deleteExpense, getAnalytics, getAllCategories } from '../services/expenseService';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { format } from 'date-fns';
+import Sidebar from '../components/Sidebar';
+import StatCard from '../components/StatCard';
 
-const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f59e0b', '#10b981', '#3b82f6', '#14b8a6'];
+const CHART_COLORS = ['#475569', '#64748b', '#94a3b8', '#cbd5e1', '#e2e8f0', '#f1f5f9'];
 
 const Dashboard = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [expenses, setExpenses] = useState([]);
   const [categories, setCategories] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
-  // Add Expense Form State
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [formData, setFormData] = useState({
     categoryId: '',
@@ -27,7 +27,6 @@ const Dashboard = () => {
     paymentMethod: 'cash',
   });
 
-  // Load data on mount
   useEffect(() => {
     loadData();
   }, []);
@@ -62,7 +61,6 @@ const Dashboard = () => {
         amount: parseFloat(formData.amount),
       });
 
-      // Reset form and reload data
       setFormData({
         categoryId: '',
         amount: '',
@@ -94,14 +92,14 @@ const Dashboard = () => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: user?.currencyCode || 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(amount);
   };
 
-  // Prepare chart data
   const categoryChartData = analytics?.byCategory?.map(cat => ({
     name: cat.category.name,
     value: cat.total,
-    icon: cat.category.icon,
   })) || [];
 
   const paymentMethodData = Object.entries(analytics?.byPaymentMethod || {}).map(([method, data]) => ({
@@ -110,381 +108,411 @@ const Dashboard = () => {
   }));
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg"></div>
-              <span className="text-xl font-semibold text-gray-900">ExpenseTracker</span>
-            </div>
+    <div className="flex h-screen bg-gray-50">
+      {/* Sidebar */}
+      <Sidebar />
 
-            <div className="flex items-center gap-4">
-              <div className="hidden sm:block text-right">
-                <p className="text-sm font-medium text-gray-900">{user?.fullName}</p>
-                <p className="text-xs text-gray-500">{user?.email}</p>
-              </div>
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <header className="bg-white border-b border-gray-200 px-8 py-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+              <p className="text-sm text-gray-500 mt-1">Track and manage your expenses</p>
+            </div>
+            <div className="flex items-center gap-3">
               <button
-                onClick={logout}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 border border-gray-200 rounded-lg hover:border-gray-300"
+                onClick={() => setShowAddExpense(!showAddExpense)}
+                className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 font-medium text-sm transition-colors flex items-center gap-2"
               >
-                Sign out
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                New Expense
               </button>
             </div>
           </div>
-        </div>
-      </nav>
+        </header>
 
-      {/* Tabs */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8">
-            <button
-              onClick={() => setActiveTab('overview')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'overview'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Overview
-            </button>
-            <button
-              onClick={() => setActiveTab('history')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'history'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              History
-            </button>
-            <button
-              onClick={() => setActiveTab('analytics')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'analytics'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Analytics
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-600">{error}</p>
-          </div>
-        )}
-
-        {/* Add Expense Button */}
-        <div className="mb-6">
-          <button
-            onClick={() => setShowAddExpense(!showAddExpense)}
-            className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium shadow-sm"
-          >
-            + Add Expense
-          </button>
-        </div>
-
-        {/* Add Expense Form */}
-        {showAddExpense && (
-          <div className="mb-8 bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold mb-4">Add New Expense</h3>
-            <form onSubmit={handleAddExpense} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
-                <select
-                  required
-                  value={formData.categoryId}
-                  onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  <option value="">Select category...</option>
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.icon} {cat.name}
-                    </option>
-                  ))}
-                </select>
+        {/* Content Area */}
+        <main className="flex-1 overflow-y-auto">
+          <div className="px-8 py-6">
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600">{error}</p>
               </div>
+            )}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Amount *</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  required
-                  value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="0.00"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
-                <input
-                  type="date"
-                  required
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-                <select
-                  value={formData.paymentMethod}
-                  onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  <option value="cash">Cash</option>
-                  <option value="credit_card">Credit Card</option>
-                  <option value="debit_card">Debit Card</option>
-                  <option value="upi">UPI</option>
-                  <option value="bank_transfer">Bank Transfer</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                <select
-                  value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  <option value="expense">Expense</option>
-                  <option value="income">Income</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <input
-                  type="text"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="Optional description..."
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-                  rows="2"
-                  placeholder="Additional notes..."
-                />
-              </div>
-
-              <div className="md:col-span-2 flex gap-3">
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium"
-                >
-                  Save Expense
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowAddExpense(false)}
-                  className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* Tab Content */}
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent"></div>
-            <p className="text-gray-600 mt-4">Loading your expenses...</p>
-          </div>
-        ) : (
-          <>
-            {/* Overview Tab */}
-            {activeTab === 'overview' && (
-              <div className="space-y-6">
-                {/* Summary Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                  <div className="bg-white rounded-lg shadow p-6">
-                    <p className="text-sm text-gray-600 mb-1">Total Expenses</p>
-                    <p className="text-2xl font-bold text-red-600">
-                      {formatCurrency(analytics?.summary?.totalExpenses || 0)}
-                    </p>
-                  </div>
-                  <div className="bg-white rounded-lg shadow p-6">
-                    <p className="text-sm text-gray-600 mb-1">Total Income</p>
-                    <p className="text-2xl font-bold text-green-600">
-                      {formatCurrency(analytics?.summary?.totalIncome || 0)}
-                    </p>
-                  </div>
-                  <div className="bg-white rounded-lg shadow p-6">
-                    <p className="text-sm text-gray-600 mb-1">Net Balance</p>
-                    <p className={`text-2xl font-bold ${analytics?.summary?.netBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {formatCurrency(analytics?.summary?.netBalance || 0)}
-                    </p>
-                  </div>
-                  <div className="bg-white rounded-lg shadow p-6">
-                    <p className="text-sm text-gray-600 mb-1">Transactions</p>
-                    <p className="text-2xl font-bold text-indigo-600">
-                      {analytics?.summary?.totalTransactions || 0}
-                    </p>
-                  </div>
+            {/* Add Expense Modal/Form */}
+            {showAddExpense && (
+              <div className="mb-6 bg-white rounded-lg border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Add New Expense</h3>
+                  <button
+                    onClick={() => setShowAddExpense(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
+                <form onSubmit={handleAddExpense} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Category *</label>
+                    <select
+                      required
+                      value={formData.categoryId}
+                      onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent text-sm"
+                    >
+                      <option value="">Select category...</option>
+                      {categories.map(cat => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.icon} {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                {/* Category Breakdown */}
-                {categoryChartData.length > 0 && (
-                  <div className="bg-white rounded-lg shadow p-6">
-                    <h3 className="text-lg font-semibold mb-4">Spending by Category</h3>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <PieChart>
-                        <Pie
-                          data={categoryChartData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                          outerRadius={100}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {categoryChartData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Amount *</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={formData.amount}
+                      onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent text-sm"
+                      placeholder="0.00"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Date *</label>
+                    <input
+                      type="date"
+                      required
+                      value={formData.date}
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
+                    <select
+                      value={formData.paymentMethod}
+                      onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent text-sm"
+                    >
+                      <option value="cash">Cash</option>
+                      <option value="credit_card">Credit Card</option>
+                      <option value="debit_card">Debit Card</option>
+                      <option value="upi">UPI</option>
+                      <option value="bank_transfer">Bank Transfer</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
+                    <select
+                      value={formData.type}
+                      onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent text-sm"
+                    >
+                      <option value="expense">Expense</option>
+                      <option value="income">Income</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                    <input
+                      type="text"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent text-sm"
+                      placeholder="Optional..."
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+                    <textarea
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent text-sm"
+                      rows="2"
+                      placeholder="Additional notes..."
+                    />
+                  </div>
+
+                  <div className="md:col-span-2 flex gap-3">
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 font-medium text-sm"
+                    >
+                      Save Expense
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddExpense(false)}
+                      className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium text-sm"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Tabs */}
+            <div className="mb-6">
+              <nav className="flex gap-1 bg-white rounded-lg border border-gray-200 p-1">
+                <button
+                  onClick={() => setActiveTab('overview')}
+                  className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    activeTab === 'overview'
+                      ? 'bg-gray-100 text-gray-900'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Overview
+                </button>
+                <button
+                  onClick={() => setActiveTab('history')}
+                  className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    activeTab === 'history'
+                      ? 'bg-gray-100 text-gray-900'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  History
+                </button>
+                <button
+                  onClick={() => setActiveTab('analytics')}
+                  className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    activeTab === 'analytics'
+                      ? 'bg-gray-100 text-gray-900'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Analytics
+                </button>
+              </nav>
+            </div>
+
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-slate-700 border-t-transparent"></div>
+                <p className="text-gray-600 mt-4 text-sm">Loading your expenses...</p>
+              </div>
+            ) : (
+              <>
+                {/* Overview Tab */}
+                {activeTab === 'overview' && (
+                  <div className="space-y-6">
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                      <StatCard
+                        title="Total Expenses"
+                        value={formatCurrency(analytics?.summary?.totalExpenses || 0)}
+                        subtitle="This month"
+                        icon={
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 8h6m-5 0a3 3 0 110 6H9l3 3m-3-6h6m6 1a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        }
+                        trend="up"
+                        trendValue="+12.5%"
+                      />
+                      <StatCard
+                        title="Total Income"
+                        value={formatCurrency(analytics?.summary?.totalIncome || 0)}
+                        subtitle="This month"
+                        icon={
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        }
+                        trend="up"
+                        trendValue="+23.1%"
+                      />
+                      <StatCard
+                        title="Net Balance"
+                        value={formatCurrency(analytics?.summary?.netBalance || 0)}
+                        subtitle="Current balance"
+                        icon={
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        }
+                        trend="up"
+                        trendValue="+8.2%"
+                      />
+                      <StatCard
+                        title="Transactions"
+                        value={analytics?.summary?.totalTransactions || 0}
+                        subtitle="Total count"
+                        icon={
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                          </svg>
+                        }
+                      />
+                    </div>
+
+                    {/* Charts Row */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Category Chart */}
+                      {categoryChartData.length > 0 && (
+                        <div className="bg-white rounded-lg border border-gray-200 p-6">
+                          <h3 className="text-base font-semibold text-gray-900 mb-4">Spending by Category</h3>
+                          <ResponsiveContainer width="100%" height={300}>
+                            <PieChart>
+                              <Pie
+                                data={categoryChartData}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={false}
+                                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                outerRadius={90}
+                                fill="#8884d8"
+                                dataKey="value"
+                              >
+                                {categoryChartData.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                ))}
+                              </Pie>
+                              <Tooltip formatter={(value) => formatCurrency(value)} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                      )}
+
+                      {/* Recent Expenses */}
+                      <div className="bg-white rounded-lg border border-gray-200 p-6">
+                        <h3 className="text-base font-semibold text-gray-900 mb-4">Recent Transactions</h3>
+                        <div className="space-y-3">
+                          {expenses.slice(0, 5).map(expense => (
+                            <div key={expense.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                              <div className="flex items-center gap-3">
+                                <span className="text-2xl">{expense.category?.icon}</span>
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900">{expense.category?.name}</p>
+                                  <p className="text-xs text-gray-500">
+                                    {format(new Date(expense.date), 'MMM d')} • {expense.paymentMethod?.replace('_', ' ')}
+                                  </p>
+                                </div>
+                              </div>
+                              <p className={`text-sm font-semibold ${expense.type === 'expense' ? 'text-red-600' : 'text-emerald-600'}`}>
+                                {expense.type === 'expense' ? '-' : '+'}{formatCurrency(expense.amount)}
+                              </p>
+                            </div>
                           ))}
-                        </Pie>
-                        <Tooltip formatter={(value) => formatCurrency(value)} />
-                      </PieChart>
-                    </ResponsiveContainer>
+                          {expenses.length === 0 && (
+                            <p className="text-center text-gray-500 py-8 text-sm">No transactions yet</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 
-                {/* Recent Expenses */}
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h3 className="text-lg font-semibold mb-4">Recent Expenses</h3>
-                  <div className="space-y-3">
-                    {expenses.slice(0, 5).map(expense => (
-                      <div key={expense.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl">{expense.category?.icon}</span>
-                          <div>
-                            <p className="font-medium text-gray-900">{expense.category?.name}</p>
-                            <p className="text-sm text-gray-500">
-                              {format(new Date(expense.date), 'MMM d, yyyy')} • {expense.user?.fullName}
-                            </p>
+                {/* History Tab */}
+                {activeTab === 'history' && (
+                  <div className="bg-white rounded-lg border border-gray-200">
+                    <div className="p-6">
+                      <h3 className="text-base font-semibold text-gray-900 mb-4">All Transactions</h3>
+                      <div className="space-y-2">
+                        {expenses.map(expense => (
+                          <div key={expense.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                            <div className="flex items-center gap-4">
+                              <div className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-lg">
+                                <span className="text-2xl">{expense.category?.icon}</span>
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{expense.category?.name}</p>
+                                <p className="text-xs text-gray-500">{expense.description || 'No description'}</p>
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                  {format(new Date(expense.date), 'MMM d, yyyy')} • {expense.user?.fullName}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <div className="text-right">
+                                <p className={`text-base font-semibold ${expense.type === 'expense' ? 'text-red-600' : 'text-emerald-600'}`}>
+                                  {expense.type === 'expense' ? '-' : '+'}{formatCurrency(expense.amount)}
+                                </p>
+                                <p className="text-xs text-gray-500">{expense.paymentMethod?.replace('_', ' ').toUpperCase()}</p>
+                              </div>
+                              <button
+                                onClick={() => handleDeleteExpense(expense.id)}
+                                className="px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              >
+                                Delete
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <p className={`font-semibold ${expense.type === 'expense' ? 'text-red-600' : 'text-green-600'}`}>
-                            {expense.type === 'expense' ? '-' : '+'}{formatCurrency(expense.amount)}
-                          </p>
-                          <p className="text-xs text-gray-500">{expense.paymentMethod?.replace('_', ' ')}</p>
-                        </div>
+                        ))}
+                        {expenses.length === 0 && (
+                          <p className="text-center text-gray-500 py-12 text-sm">No expenses yet. Add your first expense!</p>
+                        )}
                       </div>
-                    ))}
+                    </div>
                   </div>
-                </div>
-              </div>
-            )}
+                )}
 
-            {/* History Tab */}
-            {activeTab === 'history' && (
-              <div className="bg-white rounded-lg shadow">
-                <div className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">All Transactions</h3>
-                  <div className="space-y-2">
-                    {expenses.map(expense => (
-                      <div key={expense.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-                        <div className="flex items-center gap-4">
-                          <span className="text-3xl">{expense.category?.icon}</span>
-                          <div>
-                            <p className="font-medium text-gray-900">{expense.category?.name}</p>
-                            <p className="text-sm text-gray-500">{expense.description || 'No description'}</p>
-                            <p className="text-xs text-gray-400">
-                              {format(new Date(expense.date), 'MMM d, yyyy')} • Added by {expense.user?.fullName}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="text-right">
-                            <p className={`text-lg font-semibold ${expense.type === 'expense' ? 'text-red-600' : 'text-green-600'}`}>
-                              {expense.type === 'expense' ? '-' : '+'}{formatCurrency(expense.amount)}
-                            </p>
-                            <p className="text-xs text-gray-500">{expense.paymentMethod?.replace('_', ' ').toUpperCase()}</p>
-                          </div>
-                          <button
-                            onClick={() => handleDeleteExpense(expense.id)}
-                            className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded"
-                          >
-                            Delete
-                          </button>
-                        </div>
+                {/* Analytics Tab */}
+                {activeTab === 'analytics' && (
+                  <div className="space-y-6">
+                    {/* Payment Methods Chart */}
+                    {paymentMethodData.length > 0 && (
+                      <div className="bg-white rounded-lg border border-gray-200 p-6">
+                        <h3 className="text-base font-semibold text-gray-900 mb-4">Payment Methods Breakdown</h3>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <BarChart data={paymentMethodData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                            <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="#94a3b8" />
+                            <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
+                            <Tooltip formatter={(value) => formatCurrency(value)} />
+                            <Bar dataKey="total" fill="#475569" radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
                       </div>
-                    ))}
-                    {expenses.length === 0 && (
-                      <p className="text-center text-gray-500 py-8">No expenses yet. Add your first expense above!</p>
                     )}
-                  </div>
-                </div>
-              </div>
-            )}
 
-            {/* Analytics Tab */}
-            {activeTab === 'analytics' && (
-              <div className="space-y-6">
-                {/* Payment Method Breakdown */}
-                {paymentMethodData.length > 0 && (
-                  <div className="bg-white rounded-lg shadow p-6">
-                    <h3 className="text-lg font-semibold mb-4">Payment Methods</h3>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={paymentMethodData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Tooltip formatter={(value) => formatCurrency(value)} />
-                        <Legend />
-                        <Bar dataKey="total" fill="#6366f1" />
-                      </BarChart>
-                    </ResponsiveContainer>
+                    {/* Category Breakdown */}
+                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+                      <h3 className="text-base font-semibold text-gray-900 mb-4">Category Breakdown</h3>
+                      <div className="space-y-3">
+                        {analytics?.byCategory?.map((cat, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 flex items-center justify-center bg-white rounded-lg border border-gray-200">
+                                <span className="text-xl">{cat.category.icon}</span>
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{cat.category.name}</p>
+                                <p className="text-xs text-gray-500">{cat.count} transactions</p>
+                              </div>
+                            </div>
+                            <p className="text-base font-semibold text-gray-900">
+                              {formatCurrency(cat.total)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
-
-                {/* Category Details */}
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h3 className="text-lg font-semibold mb-4">Category Details</h3>
-                  <div className="space-y-3">
-                    {analytics?.byCategory?.map((cat, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl">{cat.category.icon}</span>
-                          <div>
-                            <p className="font-medium text-gray-900">{cat.category.name}</p>
-                            <p className="text-sm text-gray-500">{cat.count} transactions</p>
-                          </div>
-                        </div>
-                        <p className="text-lg font-semibold text-indigo-600">
-                          {formatCurrency(cat.total)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              </>
             )}
-          </>
-        )}
+          </div>
+        </main>
       </div>
     </div>
   );

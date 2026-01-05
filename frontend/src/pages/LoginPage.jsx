@@ -22,17 +22,14 @@ const LoginPage = () => {
       navigate('/dashboard');
     }
 
-    // Show success message if redirected from signup or email verification
     if (location.state?.message) {
       setSuccessMessage(location.state.message);
-      // Clear the message from history so it doesn't show on refresh
       window.history.replaceState({}, document.title);
     }
   }, [isLoggedIn, navigate, location]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    console.log(`📝 [LOGIN PAGE] Input changed: ${name}`);
     setFormData(prev => ({ ...prev, [name]: value }));
     if (error) setError('');
   };
@@ -74,13 +71,15 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white flex">
+    <div className="min-h-screen bg-gray-50 flex">
       {/* Left - Form */}
       <div className="flex-1 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-20 xl:px-24">
         <div className="mx-auto w-full max-w-sm">
           {/* Logo */}
-          <div className="flex items-center space-x-2 mb-8">
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg"></div>
+          <div className="flex items-center gap-2 mb-8">
+            <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center">
+              <span className="text-white text-sm font-bold">ET</span>
+            </div>
             <span className="text-xl font-semibold text-gray-900">ExpenseTracker</span>
           </div>
 
@@ -88,20 +87,20 @@ const LoginPage = () => {
             <h2 className="text-3xl font-bold text-gray-900">Welcome back</h2>
             <p className="mt-2 text-sm text-gray-600">
               Don't have an account?{' '}
-              <Link to="/signup" className="font-medium text-indigo-600 hover:text-indigo-500">
+              <Link to="/signup" className="font-medium text-slate-700 hover:text-slate-900">
                 Sign up
               </Link>
             </p>
           </div>
 
           {successMessage && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-100 rounded-lg">
-              <p className="text-sm text-green-600">{successMessage}</p>
+            <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+              <p className="text-sm text-emerald-700">{successMessage}</p>
             </div>
           )}
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-lg">
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-sm text-red-600">{error}</p>
             </div>
           )}
@@ -118,7 +117,7 @@ const LoginPage = () => {
                 required
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent"
                 placeholder="Enter your email"
               />
             </div>
@@ -128,7 +127,7 @@ const LoginPage = () => {
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                   Password
                 </label>
-                <Link to="/forgot-password" className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                <Link to="/forgot-password" className="text-sm font-medium text-slate-700 hover:text-slate-900">
                   Forgot password?
                 </Link>
               </div>
@@ -139,7 +138,7 @@ const LoginPage = () => {
                 required
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent"
                 placeholder="Enter your password"
               />
             </div>
@@ -147,7 +146,7 @@ const LoginPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-lg shadow-sm disabled:opacity-50"
+              className="w-full bg-slate-700 hover:bg-slate-800 text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50"
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
@@ -164,39 +163,38 @@ const LoginPage = () => {
         </div>
       </div>
 
-      {/* Right - Gradient */}
-      <div className="hidden lg:block relative flex-1">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500"></div>
+      {/* Right - Feature Showcase */}
+      <div className="hidden lg:block relative flex-1 bg-slate-900">
         <div className="absolute inset-0 flex items-center justify-center p-12">
           <div className="max-w-md text-white">
             <h2 className="text-4xl font-bold mb-4">Track expenses, achieve goals</h2>
-            <p className="text-indigo-100 text-lg mb-8">
-              Join thousands taking control of their financial future.
+            <p className="text-slate-300 text-lg mb-8">
+              Join thousands taking control of their financial future with our enterprise-ready platform.
             </p>
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center">
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <span>Real-time tracking</span>
+                <span className="text-slate-200">Real-time expense tracking</span>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center">
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <span>Beautiful analytics</span>
+                <span className="text-slate-200">Powerful analytics & insights</span>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center">
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <span>Secure & private</span>
+                <span className="text-slate-200">Enterprise-grade security</span>
               </div>
             </div>
           </div>
