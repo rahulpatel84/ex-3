@@ -12,6 +12,7 @@ export const getAllExpenses = async (filters = {}) => {
   if (filters.endDate) queryParams.append('endDate', filters.endDate);
   if (filters.type) queryParams.append('type', filters.type);
   if (filters.categoryId) queryParams.append('categoryId', filters.categoryId);
+  if (filters.includeDeleted) queryParams.append('includeDeleted', filters.includeDeleted);
 
   const queryString = queryParams.toString();
   const url = `/expenses${queryString ? `?${queryString}` : ''}`;

@@ -13,6 +13,7 @@ const Dashboard = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [expenses, setExpenses] = useState([]);
+  const [deletedExpenses, setDeletedExpenses] = useState([]);
   const [categories, setCategories] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -36,13 +37,16 @@ const Dashboard = () => {
     setLoading(true);
     setError('');
     try {
-      const [expensesData, categoriesData, analyticsData] = await Promise.all([
+      const [expensesData, deletedData, categoriesData, analyticsData] = await Promise.all([
         getAllExpenses(),
+        getAllExpenses({ includeDeleted: 'true' }),
         getAllCategories(),
         getAnalytics(),
       ]);
 
       setExpenses(expensesData);
+      // Filter to show only deleted items
+      setDeletedExpenses(deletedData.filter(e => e.deletedAt != null));
       setCategories(categoriesData);
       setAnalytics(analyticsData);
     } catch (err) {
@@ -456,45 +460,90 @@ const Dashboard = () => {
 
                 {/* History Tab */}
                 {activeTab === 'history' && (
-                  <div className="bg-white rounded-lg border border-gray-200">
-                    <div className="p-6">
-                      <h3 className="text-base font-semibold text-gray-900 mb-4">All Transactions</h3>
-                      <div className="space-y-2">
-                        {expenses.map(expense => (
-                          <div key={expense.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                            <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-lg">
-                                <span className="text-2xl">{expense.category?.icon}</span>
+                  <div className="space-y-6">
+                    {/* Active Transactions */}
+                    <div className="bg-white rounded-lg border border-gray-200">
+                      <div className="p-6">
+                        <h3 className="text-base font-semibold text-gray-900 mb-4">Active Transactions</h3>
+                        <div className="space-y-2">
+                          {expenses.map(expense => (
+                            <div key={expense.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                              <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-lg">
+                                  <span className="text-2xl">{expense.category?.icon}</span>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900">{expense.category?.name}</p>
+                                  <p className="text-xs text-gray-500">{expense.description || 'No description'}</p>
+                                  <p className="text-xs text-gray-400 mt-0.5">
+                                    Added: {format(new Date(expense.createdAt), 'MMM d, yyyy h:mm a')} • by {expense.user?.fullName}
+                                  </p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="text-sm font-medium text-gray-900">{expense.category?.name}</p>
-                                <p className="text-xs text-gray-500">{expense.description || 'No description'}</p>
-                                <p className="text-xs text-gray-400 mt-0.5">
-                                  {format(new Date(expense.date), 'MMM d, yyyy')} • {expense.user?.fullName}
-                                </p>
+                              <div className="flex items-center gap-4">
+                                <div className="text-right">
+                                  <p className={`text-base font-semibold ${expense.type === 'expense' ? 'text-red-600' : 'text-emerald-600'}`}>
+                                    {expense.type === 'expense' ? '-' : '+'}{formatCurrency(expense.amount)}
+                                  </p>
+                                  <p className="text-xs text-gray-500">{expense.paymentMethod?.replace('_', ' ').toUpperCase()}</p>
+                                </div>
+                                <button
+                                  onClick={() => handleDeleteExpense(expense.id)}
+                                  className="px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                  Delete
+                                </button>
                               </div>
                             </div>
-                            <div className="flex items-center gap-4">
-                              <div className="text-right">
-                                <p className={`text-base font-semibold ${expense.type === 'expense' ? 'text-red-600' : 'text-emerald-600'}`}>
-                                  {expense.type === 'expense' ? '-' : '+'}{formatCurrency(expense.amount)}
-                                </p>
-                                <p className="text-xs text-gray-500">{expense.paymentMethod?.replace('_', ' ').toUpperCase()}</p>
-                              </div>
-                              <button
-                                onClick={() => handleDeleteExpense(expense.id)}
-                                className="px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                        {expenses.length === 0 && (
-                          <p className="text-center text-gray-500 py-12 text-sm">No expenses yet. Add your first expense!</p>
-                        )}
+                          ))}
+                          {expenses.length === 0 && (
+                            <p className="text-center text-gray-500 py-12 text-sm">No expenses yet. Add your first expense!</p>
+                          )}
+                        </div>
                       </div>
                     </div>
+
+                    {/* Deleted Transactions */}
+                    {deletedExpenses.length > 0 && (
+                      <div className="bg-white rounded-lg border border-gray-200">
+                        <div className="p-6">
+                          <h3 className="text-base font-semibold text-gray-900 mb-2">Deleted Transactions</h3>
+                          <p className="text-xs text-gray-500 mb-4">These transactions have been deleted but kept for record purposes</p>
+                          <div className="space-y-2">
+                            {deletedExpenses.map(expense => (
+                              <div key={expense.id} className="flex items-center justify-between p-4 border border-red-200 bg-red-50 rounded-lg opacity-75">
+                                <div className="flex items-center gap-4">
+                                  <div className="w-10 h-10 flex items-center justify-center bg-white rounded-lg border border-red-200">
+                                    <span className="text-2xl opacity-50">{expense.category?.icon}</span>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-900">{expense.category?.name}</p>
+                                    <p className="text-xs text-gray-600">{expense.description || 'No description'}</p>
+                                    <div className="mt-1 space-y-0.5">
+                                      <p className="text-xs text-gray-500">
+                                        ✅ Added: {format(new Date(expense.createdAt), 'MMM d, yyyy h:mm a')} by {expense.user?.fullName}
+                                      </p>
+                                      <p className="text-xs text-red-600 font-medium">
+                                        🗑️ Deleted: {format(new Date(expense.deletedAt), 'MMM d, yyyy h:mm a')}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <p className={`text-base font-semibold ${expense.type === 'expense' ? 'text-red-600' : 'text-emerald-600'} opacity-50`}>
+                                    {expense.type === 'expense' ? '-' : '+'}{formatCurrency(expense.amount)}
+                                  </p>
+                                  <p className="text-xs text-gray-500">{expense.paymentMethod?.replace('_', ' ').toUpperCase()}</p>
+                                  <span className="inline-block mt-1 px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded">
+                                    Deleted
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 

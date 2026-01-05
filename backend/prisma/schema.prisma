@@ -127,6 +127,8 @@ model Expense {
   type          String    @default("expense") // "expense" or "income"
   paymentMethod String?   @map("payment_method") // "cash", "card", "bank_transfer", etc.
   receiptUrl    String?   @map("receipt_url") // URL to uploaded receipt (future feature)
+  deletedAt     DateTime? @map("deleted_at") // Soft delete timestamp
+  deletedBy     String?   @map("deleted_by") // User who deleted it
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
@@ -138,5 +140,6 @@ model Expense {
   @@index([categoryId])
   @@index([date])
   @@index([type])
+  @@index([deletedAt])
   @@map("expenses")
 }

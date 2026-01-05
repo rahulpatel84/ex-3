@@ -16,12 +16,14 @@ export class ExpenseController {
     @Query('endDate') endDate?: string,
     @Query('type') type?: string,
     @Query('categoryId') categoryId?: string,
+    @Query('includeDeleted') includeDeleted?: string,
   ) {
     const expenses = await this.expenseService.findAll(req.user.id, {
       startDate,
       endDate,
       type,
       categoryId,
+      includeDeleted,
     });
 
     return {

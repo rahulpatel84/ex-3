@@ -7,8 +7,13 @@ import { UpdateExpenseDto } from './dto/update-expense.dto';
 export class ExpenseService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(userId: string, filters?: { startDate?: string; endDate?: string; type?: string; categoryId?: string }) {
+  async findAll(userId: string, filters?: { startDate?: string; endDate?: string; type?: string; categoryId?: string; includeDeleted?: string }) {
     const where: any = { userId };
+
+    // By default, exclude deleted expenses unless specifically requested
+    if (filters?.includeDeleted !== 'true') {
+      where.deletedAt = null;
+    }
 
     if (filters?.startDate || filters?.endDate) {
       where.date = {};
@@ -186,14 +191,19 @@ export class ExpenseService {
     // Check if expense exists and belongs to user
     await this.findOne(id, userId);
 
-    await this.prisma.expense.delete({
+    // Soft delete: Set deletedAt and deletedBy instead of actually deleting
+    await this.prisma.expense.update({
       where: { id },
+      data: {
+        deletedAt: new Date(),
+        deletedBy: userId,
+      },
     });
   }
 
   // Analytics methods
   async getAnalytics(userId: string, startDate?: string, endDate?: string) {
-    const where: any = { userId };
+    const where: any = { userId, deletedAt: null }; // Exclude deleted expenses from analytics
 
     if (startDate || endDate) {
       where.date = {};
