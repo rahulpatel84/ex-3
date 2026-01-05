@@ -3,9 +3,9 @@
 # Test Category API Endpoints
 # Make sure to set these variables before running
 
-BACKEND_URL="https://your-backend.railway.app"  # Update with your Railway URL
-EMAIL="your-email@example.com"                   # Update with your test user email
-PASSWORD="your-password"                          # Update with your test user password
+BACKEND_URL="https://expense-v1-production.up.railway.app"
+EMAIL="test@example.com"  # Update with your actual test user email
+PASSWORD="your-password"   # Update with your actual password
 
 echo "🧪 Testing Category API"
 echo "===================="
