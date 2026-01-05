@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '../config';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 // Logging utility
 const log = {
@@ -23,7 +23,7 @@ const fetchWithAuth = async (url, options = {}) => {
 
   log.info('API', `${options.method || 'GET'} ${url}`);
 
-  const response = await fetch(`${API_BASE_URL}${url}`, {
+  const response = await fetch(`${API_URL}${url}`, {
     ...options,
     headers,
   });
