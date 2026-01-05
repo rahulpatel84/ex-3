@@ -107,10 +107,18 @@ const Dashboard = () => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: user?.currencyCode || 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(amount);
   };
+
+  // Reload data when user currency changes
+  useEffect(() => {
+    if (user?.currencyCode) {
+      // Force re-render when currency changes
+      loadData();
+    }
+  }, [user?.currencyCode]);
 
   const categoryChartData = analytics?.byCategory?.map(cat => ({
     name: cat.category.name,

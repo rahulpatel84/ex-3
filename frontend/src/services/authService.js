@@ -389,25 +389,25 @@ export const resetPassword = async (token, newPassword) => {
 };
 
 /**
- * GET USER PROFILE - Fetch current user's profile (protected endpoint)
- * 
- * Note: For now, we get user data from localStorage since /auth/profile
- * endpoint requires JWT guard setup. We'll add proper profile endpoint later.
+ * GET USER PROFILE - Fetch fresh user profile from API
  */
 export const getUserProfile = async () => {
-  log.info('API', 'Getting user profile from localStorage');
+  log.info('API', 'Getting user profile from API');
 
   try {
-    // For now, return user from localStorage
-    // TODO: Add proper /auth/profile endpoint with JWT guard
-    const user = getCurrentUser();
+    const response = await fetchWithAuth('/auth/me');
+    const data = await response.json();
 
-    if (user) {
-      log.success('API', 'User profile fetched from localStorage', { email: user.email });
-      return user;
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to fetch user profile');
     }
+
+    // Update localStorage with fresh data
+    const userData = data.data.user;
+    localStorage.setItem('user', JSON.stringify(userData));
     
-    throw new Error('No user found in localStorage');
+    log.success('API', 'User profile fetched from API', { email: userData.email });
+    return userData;
   } catch (error) {
     log.error('API', 'Failed to fetch user profile', error.message);
     throw error;

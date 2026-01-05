@@ -266,10 +266,10 @@ export const AuthProvider = ({ children }) => {
    */
   const refreshUser = async () => {
     try {
-      const userData = await authService.getCurrentUser();
+      const userData = await authService.getUserProfile();
       setUser(userData);
       localStorage.setItem('user', JSON.stringify(userData));
-      console.log('✅ [AUTH CONTEXT] User data refreshed');
+      console.log('✅ [AUTH CONTEXT] User data refreshed from API');
     } catch (error) {
       console.error('❌ [AUTH CONTEXT] Failed to refresh user:', error);
     }
