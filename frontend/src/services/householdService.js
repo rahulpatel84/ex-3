@@ -12,7 +12,9 @@ const fetchWithAuth = async (url, options = {}) => {
   const token = localStorage.getItem('token');
   
   if (!token) {
-    throw new Error('No authentication token found');
+    console.error('❌ No token found in localStorage');
+    console.log('Available keys:', Object.keys(localStorage));
+    throw new Error('No authentication token found. Please log in again.');
   }
 
   const headers = {
@@ -21,7 +23,7 @@ const fetchWithAuth = async (url, options = {}) => {
     ...options.headers,
   };
 
-  log.info('API', `${options.method || 'GET'} ${url}`);
+  log.info('API', `${options.method || 'GET'} ${url}`, { hasToken: !!token });
 
   const response = await fetch(`${API_URL}${url}`, {
     ...options,
