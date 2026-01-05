@@ -21,21 +21,11 @@ const UsersPage = () => {
     try {
       setLoading(true);
       
-      // If user doesn't have a household, create a default one
-      if (!user?.currentHouseholdId) {
-        console.log('No household found, creating default household...');
-        const newHousehold = await householdService.createHousehold({
-          name: `${user?.fullName}'s Personal Expenses`,
-          description: 'Your personal household',
-        });
-        console.log('Created household:', newHousehold);
-        // Refresh user data to get the new household
-        window.location.reload();
-        return;
+      if (user?.currentHouseholdId) {
+        const data = await householdService.getHousehold(user.currentHouseholdId);
+        setHousehold(data);
       }
-      
-      const data = await householdService.getHousehold(user.currentHouseholdId);
-      setHousehold(data);
+      // If no household, just show empty state - don't auto-create
     } catch (error) {
       console.error('Failed to load household:', error);
       showMessage('error', 'Failed to load household members');
