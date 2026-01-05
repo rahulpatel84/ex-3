@@ -9,7 +9,8 @@ const log = {
 
 // Helper to make authenticated requests
 const fetchWithAuth = async (url, options = {}) => {
-  const token = localStorage.getItem('token');
+  // Try 'accessToken' first (used by authService), then 'token' as fallback
+  const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
   
   if (!token) {
     console.error('❌ No token found in localStorage');
