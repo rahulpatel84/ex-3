@@ -92,22 +92,41 @@ export class AuthService {
     // Update user object with currentHouseholdId
     user.currentHouseholdId = household.id;
 
-    // Generate verification token
-    const verificationToken = this.generateToken();
-    const tokenHash = await this.hashToken(verificationToken);
-
-    await this.prisma.emailVerification.create({
-      data: {
-        userId: user.id,
-        email: user.email,
-        tokenHash,
-        expiresAt: new Date(Date.now() + this.VERIFICATION_TOKEN_EXPIRY),
-        ipAddress,
+    // Check if there's a pending invitation for this email - if so, auto-verify
+    const pendingInvitation = await this.prisma.invitation.findFirst({
+      where: {
+        email: user.email.toLowerCase(),
+        acceptedAt: null,
+        declinedAt: null,
+        expiresAt: { gt: new Date() },
       },
     });
 
-    // Send verification email
-    await this.email.sendVerificationEmail(user.email, verificationToken, user.fullName);
+    if (pendingInvitation) {
+      // Auto-verify email for invitation signups
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerified: true },
+      });
+      user.emailVerified = true;
+    } else {
+      // Generate verification token for normal signups
+      const verificationToken = this.generateToken();
+      const tokenHash = await this.hashToken(verificationToken);
+
+      await this.prisma.emailVerification.create({
+        data: {
+          userId: user.id,
+          email: user.email,
+          tokenHash,
+          expiresAt: new Date(Date.now() + this.VERIFICATION_TOKEN_EXPIRY),
+          ipAddress,
+        },
+      });
+
+      // Send verification email
+      await this.email.sendVerificationEmail(user.email, verificationToken, user.fullName);
+    }
 
     // Generate tokens
     const accessToken = this.generateAccessToken(user);

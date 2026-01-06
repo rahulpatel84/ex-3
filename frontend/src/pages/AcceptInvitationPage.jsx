@@ -22,22 +22,23 @@ const AcceptInvitationPage = () => {
   });
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [acceptingInvitation, setAcceptingInvitation] = useState(false);
 
   useEffect(() => {
     checkInvitationDetails();
   }, [token]);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || status === 'need-auth' || status === 'accepting' || status === 'success') return;
 
     // Store token for after auth
     localStorage.setItem('pendingInvitationToken', token);
 
-    if (isLoggedIn) {
-      // User is already logged in, accept invitation directly
+    // Only auto-accept if user is already logged in when page loads
+    if (isLoggedIn && status === 'checking') {
       acceptInvitation();
     }
-  }, [isLoggedIn, loading, token]);
+  }, [isLoggedIn, loading, token, status]);
 
   const checkInvitationDetails = async () => {
     try {
@@ -59,7 +60,10 @@ const AcceptInvitationPage = () => {
   };
 
   const acceptInvitation = async () => {
+    if (acceptingInvitation) return; // Prevent duplicate calls
+    
     try {
+      setAcceptingInvitation(true);
       setStatus('accepting');
       const result = await householdService.acceptInvitation(token);
       setHouseholdName(result.household?.name || 'the shared account');
@@ -79,6 +83,7 @@ const AcceptInvitationPage = () => {
     } catch (error) {
       setStatus('error');
       setMessage(error.message || 'Failed to accept invitation. It may have expired or already been used.');
+      setAcceptingInvitation(false);
     }
   };
 
@@ -92,13 +97,15 @@ const AcceptInvitationPage = () => {
         await login(formData.email, formData.password);
       } else {
         await signup(formData.email, formData.password, formData.fullName);
-        // After signup, user needs to verify email
-        // But for invitation flow, let's try to accept anyway
+        // After signup, auto-login to accept invitation
         await login(formData.email, formData.password);
       }
       
-      // After successful auth, accept the invitation
-      // The useEffect will handle this when isLoggedIn changes
+      // Wait a moment for auth state to update
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Now accept the invitation
+      await acceptInvitation();
     } catch (error) {
       setAuthError(error.message || 'Authentication failed. Please try again.');
       setAuthLoading(false);
