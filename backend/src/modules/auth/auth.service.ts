@@ -45,7 +45,7 @@ export class AuthService {
     // Hash password
     const passwordHash = await this.hashPassword(password);
 
-    // Create user
+    // Create user with their own account (household)
     const user = await this.prisma.user.create({
       data: {
         fullName,
@@ -65,6 +65,32 @@ export class AuthService {
         createdAt: true,
       },
     });
+
+    // Create user's personal account (household) automatically
+    const household = await this.prisma.household.create({
+      data: {
+        name: `${fullName}'s Expenses`,
+        description: 'Personal expense tracking',
+        createdBy: user.id,
+        members: {
+          create: {
+            userId: user.id,
+            role: 'owner',
+            acceptedAt: new Date(),
+            status: 'active',
+          },
+        },
+      },
+    });
+
+    // Set as current household
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { currentHouseholdId: household.id },
+    });
+
+    // Update user object with currentHouseholdId
+    user.currentHouseholdId = household.id;
 
     // Generate verification token
     const verificationToken = this.generateToken();

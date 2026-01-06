@@ -6,33 +6,45 @@ import * as householdService from '../services/householdService';
 const AcceptInvitationPage = () => {
   const { token } = useParams();
   const navigate = useNavigate();
-  const { user, isLoggedIn, loading, refreshUser } = useAuth();
+  const { user, isLoggedIn, loading, refreshUser, login, signup } = useAuth();
   
-  const [status, setStatus] = useState('loading'); // loading, success, error, need-login
+  const [status, setStatus] = useState('checking'); // checking, need-auth, accepting, success, error
   const [message, setMessage] = useState('');
   const [householdName, setHouseholdName] = useState('');
+  const [inviterName, setInviterName] = useState('');
+  
+  // Auth form state
+  const [authMode, setAuthMode] = useState('login'); // login or signup
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    fullName: '',
+  });
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState('');
 
   useEffect(() => {
     if (loading) return;
 
-    if (!isLoggedIn) {
-      setStatus('need-login');
-      setMessage('Please log in or sign up to accept this invitation.');
-      // Store the token so we can use it after login
-      localStorage.setItem('pendingInvitationToken', token);
-      return;
-    }
+    // Store token for after auth
+    localStorage.setItem('pendingInvitationToken', token);
 
-    acceptInvitation();
+    if (isLoggedIn) {
+      // User is already logged in, accept invitation directly
+      acceptInvitation();
+    } else {
+      // Show login/signup options
+      setStatus('need-auth');
+    }
   }, [isLoggedIn, loading, token]);
 
   const acceptInvitation = async () => {
     try {
-      setStatus('loading');
+      setStatus('accepting');
       const result = await householdService.acceptInvitation(token);
-      setHouseholdName(result.household?.name || 'the household');
+      setHouseholdName(result.household?.name || 'the shared account');
       setStatus('success');
-      setMessage(`You've successfully joined ${result.household?.name || 'the household'}!`);
+      setMessage(`You've successfully joined ${result.household?.name || 'the shared account'}!`);
       
       // Clear the pending token
       localStorage.removeItem('pendingInvitationToken');
@@ -50,6 +62,29 @@ const AcceptInvitationPage = () => {
     }
   };
 
+  const handleAuth = async (e) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    setAuthError('');
+
+    try {
+      if (authMode === 'login') {
+        await login(formData.email, formData.password);
+      } else {
+        await signup(formData.email, formData.password, formData.fullName);
+        // After signup, user needs to verify email
+        // But for invitation flow, let's try to accept anyway
+        await login(formData.email, formData.password);
+      }
+      
+      // After successful auth, accept the invitation
+      // The useEffect will handle this when isLoggedIn changes
+    } catch (error) {
+      setAuthError(error.message || 'Authentication failed. Please try again.');
+      setAuthLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -63,92 +98,194 @@ const AcceptInvitationPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
-        {status === 'loading' && (
-          <>
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-slate-700 mx-auto"></div>
-            <h2 className="mt-6 text-xl font-semibold text-gray-900">Accepting Invitation...</h2>
-            <p className="mt-2 text-gray-600">Please wait while we process your invitation.</p>
-          </>
-        )}
+      <div className="max-w-md w-full">
+        {/* Logo */}
+        <div className="flex items-center justify-center gap-2 mb-8">
+          <div className="w-10 h-10 bg-slate-700 rounded-lg flex items-center justify-center">
+            <span className="text-white text-lg font-bold">ET</span>
+          </div>
+          <span className="text-xl font-semibold text-gray-900">ExpenseTracker</span>
+        </div>
 
-        {status === 'success' && (
-          <>
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          {status === 'checking' && (
+            <div className="p-8 text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-700 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Verifying invitation...</p>
             </div>
-            <h2 className="mt-6 text-xl font-semibold text-gray-900">Welcome! 🎉</h2>
-            <p className="mt-2 text-gray-600">{message}</p>
-            <p className="mt-4 text-sm text-gray-500">Redirecting to dashboard...</p>
-            <Link
-              to="/dashboard"
-              className="mt-6 inline-block px-6 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition-colors"
-            >
-              Go to Dashboard
-            </Link>
-          </>
-        )}
+          )}
 
-        {status === 'error' && (
-          <>
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
-              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+          {status === 'accepting' && (
+            <div className="p-8 text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-700 mx-auto"></div>
+              <h2 className="mt-6 text-xl font-semibold text-gray-900">Joining...</h2>
+              <p className="mt-2 text-gray-600">Setting up your access...</p>
             </div>
-            <h2 className="mt-6 text-xl font-semibold text-gray-900">Invitation Error</h2>
-            <p className="mt-2 text-gray-600">{message}</p>
-            <div className="mt-6 space-y-3">
+          )}
+
+          {status === 'success' && (
+            <div className="p-8 text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="mt-6 text-xl font-semibold text-gray-900">Welcome! 🎉</h2>
+              <p className="mt-2 text-gray-600">{message}</p>
+              <p className="mt-4 text-sm text-gray-500">Redirecting to dashboard...</p>
               <Link
                 to="/dashboard"
-                className="block px-6 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition-colors"
+                className="mt-6 inline-block px-6 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition-colors"
               >
                 Go to Dashboard
               </Link>
-              <Link
-                to="/users"
-                className="block px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Manage Users
-              </Link>
             </div>
-          </>
-        )}
+          )}
 
-        {status === 'need-login' && (
-          <>
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
-            <h2 className="mt-6 text-xl font-semibold text-gray-900">Login Required</h2>
-            <p className="mt-2 text-gray-600">{message}</p>
-            <div className="mt-6 space-y-3">
+          {status === 'error' && (
+            <div className="p-8 text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+                <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <h2 className="mt-6 text-xl font-semibold text-gray-900">Invitation Error</h2>
+              <p className="mt-2 text-gray-600">{message}</p>
               <Link
-                to="/login"
-                className="block px-6 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition-colors"
+                to="/"
+                className="mt-6 inline-block px-6 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition-colors"
               >
-                Log In
-              </Link>
-              <Link
-                to="/signup"
-                className="block px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Sign Up
+                Go to Home
               </Link>
             </div>
-            <p className="mt-4 text-sm text-gray-500">
-              After logging in, you'll be automatically redirected to accept the invitation.
-            </p>
-          </>
-        )}
+          )}
+
+          {status === 'need-auth' && (
+            <>
+              {/* Header */}
+              <div className="px-6 py-8 bg-slate-50 border-b border-gray-200 text-center">
+                <div className="w-12 h-12 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-semibold text-gray-900">You're Invited!</h2>
+                <p className="mt-2 text-sm text-gray-600">
+                  Someone has invited you to track expenses together
+                </p>
+              </div>
+
+              {/* Auth Tabs */}
+              <div className="flex border-b border-gray-200">
+                <button
+                  onClick={() => setAuthMode('login')}
+                  className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                    authMode === 'login'
+                      ? 'text-slate-700 border-b-2 border-slate-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  I have an account
+                </button>
+                <button
+                  onClick={() => setAuthMode('signup')}
+                  className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                    authMode === 'signup'
+                      ? 'text-slate-700 border-b-2 border-slate-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Create new account
+                </button>
+              </div>
+
+              {/* Auth Form */}
+              <div className="p-6">
+                {authError && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                    {authError}
+                  </div>
+                )}
+
+                <form onSubmit={handleAuth} className="space-y-4">
+                  {authMode === 'signup' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Full Name
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.fullName}
+                        onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent"
+                        placeholder="Your name"
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent"
+                      placeholder="your@email.com"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Password
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent"
+                      placeholder={authMode === 'signup' ? 'Create a password' : 'Your password'}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={authLoading}
+                    className="w-full py-3 bg-slate-700 text-white rounded-lg hover:bg-slate-800 font-medium transition-colors disabled:opacity-50"
+                  >
+                    {authLoading 
+                      ? 'Please wait...' 
+                      : authMode === 'login' 
+                        ? 'Log in & Accept Invitation' 
+                        : 'Create Account & Join'}
+                  </button>
+                </form>
+
+                {authMode === 'login' && (
+                  <p className="mt-4 text-center text-sm text-gray-600">
+                    <Link to="/forgot-password" className="text-slate-700 hover:text-slate-800">
+                      Forgot your password?
+                    </Link>
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Back link */}
+        <p className="mt-6 text-center text-sm text-gray-600">
+          <Link to="/" className="text-slate-700 hover:text-slate-800">
+            ← Back to home
+          </Link>
+        </p>
       </div>
     </div>
   );
 };
 
 export default AcceptInvitationPage;
-

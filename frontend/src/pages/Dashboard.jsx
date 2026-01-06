@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { getAllExpenses, createExpense, deleteExpense, updateExpense, getAnalytics, getAllCategories } from '../services/expenseService';
+import * as householdService from '../services/householdService';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
 import Sidebar from '../components/Sidebar';
@@ -19,6 +20,15 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showAddExpense, setShowAddExpense] = useState(false);
+  
+  // Share modal state
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareEmail, setShareEmail] = useState('');
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareMessage, setShareMessage] = useState(null);
+  const [collaborators, setCollaborators] = useState([]);
+  const [pendingInvites, setPendingInvites] = useState([]);
+  
   const [formData, setFormData] = useState({
     categoryId: '',
     amount: '',
@@ -31,7 +41,43 @@ const Dashboard = () => {
 
   useEffect(() => {
     loadData();
+    loadCollaborators();
   }, []);
+
+  const loadCollaborators = async () => {
+    try {
+      if (user?.currentHouseholdId) {
+        const household = await householdService.getHousehold(user.currentHouseholdId);
+        setCollaborators(household.members?.filter(m => m.status === 'active') || []);
+        setPendingInvites(household.invitations?.filter(i => !i.acceptedAt && !i.declinedAt) || []);
+      }
+    } catch (err) {
+      console.error('Failed to load collaborators:', err);
+    }
+  };
+
+  const handleShareInvite = async (e) => {
+    e.preventDefault();
+    if (!shareEmail.trim()) return;
+    
+    setShareLoading(true);
+    setShareMessage(null);
+    
+    try {
+      await householdService.inviteMember(user.currentHouseholdId, {
+        email: shareEmail,
+        role: 'member',
+      });
+      
+      setShareMessage({ type: 'success', text: `Invitation sent to ${shareEmail}!` });
+      setShareEmail('');
+      loadCollaborators();
+    } catch (err) {
+      setShareMessage({ type: 'error', text: err.message || 'Failed to send invitation' });
+    } finally {
+      setShareLoading(false);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -145,6 +191,20 @@ const Dashboard = () => {
               <p className="text-sm text-gray-500 mt-1">Track and manage your expenses</p>
             </div>
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowShareModal(true)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+                Share
+                {collaborators.length > 1 && (
+                  <span className="ml-1 px-1.5 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full">
+                    {collaborators.length}
+                  </span>
+                )}
+              </button>
               <button
                 onClick={() => setShowAddExpense(!showAddExpense)}
                 className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 font-medium text-sm transition-colors flex items-center gap-2"
@@ -603,6 +663,127 @@ const Dashboard = () => {
           </div>
         </main>
       </div>
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-md mx-4 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Share Dashboard</h3>
+              <button
+                onClick={() => {
+                  setShowShareModal(false);
+                  setShareMessage(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <p className="text-sm text-gray-600 mb-4">
+                Invite family members to access and manage expenses together. They'll receive an email to join.
+              </p>
+              
+              {shareMessage && (
+                <div className={`mb-4 p-3 rounded-lg text-sm ${
+                  shareMessage.type === 'success' 
+                    ? 'bg-green-50 text-green-700 border border-green-200' 
+                    : 'bg-red-50 text-red-700 border border-red-200'
+                }`}>
+                  {shareMessage.text}
+                </div>
+              )}
+              
+              <form onSubmit={handleShareInvite} className="flex gap-2 mb-6">
+                <input
+                  type="email"
+                  value={shareEmail}
+                  onChange={(e) => setShareEmail(e.target.value)}
+                  placeholder="Enter email address"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent text-sm"
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={shareLoading}
+                  className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 font-medium text-sm disabled:opacity-50"
+                >
+                  {shareLoading ? 'Sending...' : 'Invite'}
+                </button>
+              </form>
+              
+              {/* Current Collaborators */}
+              {collaborators.length > 0 && (
+                <div className="mb-4">
+                  <h4 className="text-sm font-medium text-gray-900 mb-3">People with access</h4>
+                  <div className="space-y-2">
+                    {collaborators.map((member) => (
+                      <div key={member.id} className="flex items-center justify-between py-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center">
+                            <span className="text-white text-xs font-semibold">
+                              {member.user?.fullName?.charAt(0) || 'U'}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {member.user?.fullName}
+                              {member.userId === user?.id && (
+                                <span className="ml-1 text-xs text-gray-500">(You)</span>
+                              )}
+                            </p>
+                            <p className="text-xs text-gray-500">{member.user?.email}</p>
+                          </div>
+                        </div>
+                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                          member.role === 'owner' 
+                            ? 'bg-purple-100 text-purple-700' 
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {member.role}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Pending Invitations */}
+              {pendingInvites.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-900 mb-3">Pending invitations</h4>
+                  <div className="space-y-2">
+                    {pendingInvites.map((invite) => (
+                      <div key={invite.id} className="flex items-center justify-between py-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-900">{invite.email}</p>
+                            <p className="text-xs text-gray-500">
+                              Expires {format(new Date(invite.expiresAt), 'MMM d, yyyy')}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
+                          Pending
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
