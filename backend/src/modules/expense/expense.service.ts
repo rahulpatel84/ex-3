@@ -58,6 +58,13 @@ export class ExpenseService {
             email: true,
           },
         },
+        deletedByUser: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
+        },
       },
       orderBy: {
         date: 'desc',

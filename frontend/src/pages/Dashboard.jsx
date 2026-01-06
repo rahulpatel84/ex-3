@@ -592,7 +592,7 @@ const Dashboard = () => {
                                         ✅ Added: {format(new Date(expense.createdAt), 'MMM d, yyyy h:mm a')} by {expense.user?.fullName}
                                       </p>
                                       <p className="text-xs text-red-600 font-medium">
-                                        🗑️ Deleted: {format(new Date(expense.deletedAt), 'MMM d, yyyy h:mm a')}
+                                        🗑️ Deleted: {format(new Date(expense.deletedAt), 'MMM d, yyyy h:mm a')} by {expense.deletedByUser?.fullName || 'Unknown'}
                                       </p>
                                     </div>
                                   </div>
