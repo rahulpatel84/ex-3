@@ -6,16 +6,16 @@ import * as householdService from '../services/householdService';
 const AcceptInvitationPage = () => {
   const { token } = useParams();
   const navigate = useNavigate();
-  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const { user, isLoggedIn, loading } = useAuth();
   
   const [status, setStatus] = useState('loading'); // loading, success, error, need-login
   const [message, setMessage] = useState('');
   const [householdName, setHouseholdName] = useState('');
 
   useEffect(() => {
-    if (authLoading) return;
+    if (loading) return;
 
-    if (!isAuthenticated) {
+    if (!isLoggedIn) {
       setStatus('need-login');
       setMessage('Please log in or sign up to accept this invitation.');
       // Store the token so we can use it after login
@@ -24,7 +24,7 @@ const AcceptInvitationPage = () => {
     }
 
     acceptInvitation();
-  }, [isAuthenticated, authLoading, token]);
+  }, [isLoggedIn, loading, token]);
 
   const acceptInvitation = async () => {
     try {
@@ -47,7 +47,7 @@ const AcceptInvitationPage = () => {
     }
   };
 
-  if (authLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
