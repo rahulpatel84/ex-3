@@ -6,7 +6,7 @@ import * as householdService from '../services/householdService';
 const AcceptInvitationPage = () => {
   const { token } = useParams();
   const navigate = useNavigate();
-  const { user, isLoggedIn, loading } = useAuth();
+  const { user, isLoggedIn, loading, refreshUser } = useAuth();
   
   const [status, setStatus] = useState('loading'); // loading, success, error, need-login
   const [message, setMessage] = useState('');
@@ -36,6 +36,9 @@ const AcceptInvitationPage = () => {
       
       // Clear the pending token
       localStorage.removeItem('pendingInvitationToken');
+      
+      // Refresh user data to get updated household info
+      await refreshUser();
       
       // Redirect to dashboard after 3 seconds
       setTimeout(() => {
