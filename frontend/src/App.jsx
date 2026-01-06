@@ -19,6 +19,7 @@ import VerifyEmailPage from './pages/VerifyEmailPage';
 import Dashboard from './pages/Dashboard';
 import UsersPage from './pages/UsersPage';
 import SettingsPage from './pages/SettingsPage';
+import AcceptInvitationPage from './pages/AcceptInvitationPage';
 
 function App() {
   console.log('🚀 [APP] Application starting...');
@@ -34,6 +35,7 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/household/invite/:token" element={<AcceptInvitationPage />} />
 
           {/* Protected Routes */}
           <Route

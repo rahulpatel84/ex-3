@@ -55,6 +55,14 @@ const LoginPage = () => {
 
     try {
       await login(formData.email, formData.password);
+      
+      // Check for pending invitation
+      const pendingInvitationToken = localStorage.getItem('pendingInvitationToken');
+      if (pendingInvitationToken) {
+        navigate(`/household/invite/${pendingInvitationToken}`, { replace: true });
+        return;
+      }
+      
       const from = location.state?.from?.pathname || '/dashboard';
       navigate(from, { replace: true });
     } catch (error) {
