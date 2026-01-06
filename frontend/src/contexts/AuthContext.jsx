@@ -153,7 +153,10 @@ export const AuthProvider = ({ children }) => {
   const signup = async (email, password, fullName) => {
     try {
       const data = await authService.signup(email, password, fullName);
-      // Don't set user state - user needs to verify email first
+      // If email is already verified (e.g., via invitation), set user state
+      if (data.accessToken && data.user) {
+        setUser(data.user);
+      }
       return data;
     } catch (error) {
       throw error;

@@ -104,11 +104,23 @@ export class AuthService {
 
     if (pendingInvitation) {
       // Auto-verify email for invitation signups
-      await this.prisma.user.update({
+      const updatedUser = await this.prisma.user.update({
         where: { id: user.id },
         data: { emailVerified: true },
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          avatarUrl: true,
+          currencyCode: true,
+          emailVerified: true,
+          onboardingCompleted: true,
+          currentHouseholdId: true,
+          createdAt: true,
+        },
       });
-      user.emailVerified = true;
+      // Use updated user object
+      Object.assign(user, updatedUser);
     } else {
       // Generate verification token for normal signups
       const verificationToken = this.generateToken();

@@ -96,13 +96,56 @@ const AcceptInvitationPage = () => {
       if (authMode === 'login') {
         await login(formData.email, formData.password);
       } else {
-        await signup(formData.email, formData.password, formData.fullName);
-        // After signup, auto-login to accept invitation
-        await login(formData.email, formData.password);
+        // Signup with invitation - email will be auto-verified
+        const signupResult = await signup(formData.email, formData.password, formData.fullName);
+        
+        // If signup returned tokens (email already verified), we're done
+        // Otherwise, try to login
+        if (!signupResult.accessToken) {
+          // Wait a moment for database to commit email verification
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Try to login - retry up to 3 times in case of timing issues
+          let loginSuccess = false;
+          let lastError = null;
+          for (let i = 0; i < 3; i++) {
+            try {
+              await login(formData.email, formData.password);
+              loginSuccess = true;
+              break;
+            } catch (err) {
+              lastError = err;
+              if (i < 2) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+              }
+            }
+          }
+          
+          if (!loginSuccess) {
+            throw lastError || new Error('Failed to log in after signup. Please try logging in manually.');
+          }
+        }
       }
       
-      // Wait a moment for auth state to update
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Verify token is stored before proceeding
+      let attempts = 0;
+      while (attempts < 10) {
+        const token = localStorage.getItem('accessToken');
+        if (token) {
+          break;
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+      
+      // Double-check token exists
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        throw new Error('Authentication token not found. Please try logging in again.');
+      }
+      
+      // Small delay to ensure auth context is updated
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       // Now accept the invitation
       await acceptInvitation();

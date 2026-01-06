@@ -50,8 +50,21 @@ export const signup = async (email, password, fullName) => {
 
     log.success('AUTH', 'Signup successful!', {
       userId: data.data.user.id,
-      email: data.data.user.email
+      email: data.data.user.email,
+      emailVerified: data.data.user.emailVerified
     });
+
+    // If email is already verified (e.g., via invitation), store tokens immediately
+    if (data.data.user.emailVerified && data.data.accessToken) {
+      log.info('AUTH', 'Email already verified, storing tokens');
+      localStorage.setItem('accessToken', data.data.accessToken);
+      localStorage.setItem('user', JSON.stringify(data.data.user));
+      return {
+        accessToken: data.data.accessToken,
+        user: data.data.user,
+        message: data.message
+      };
+    }
 
     log.info('AUTH', 'User needs to verify email before logging in');
 
