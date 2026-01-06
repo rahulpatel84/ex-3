@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { HouseholdService } from './household.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Public } from '../auth/decorators/public.decorator';
 import { CreateHouseholdDto } from './dto/create-household.dto';
 import { UpdateHouseholdDto } from './dto/update-household.dto';
 import { InviteMemberDto } from './dto/invite-member.dto';
@@ -89,6 +90,17 @@ export class HouseholdController {
       success: true,
       message: 'Invitation sent successfully',
       data: invitation,
+    };
+  }
+
+  // Public endpoint to check invitation details (no auth required)
+  @Public()
+  @Get('invitations/:token/check')
+  async checkInvitation(@Param('token') token: string) {
+    const invitationInfo = await this.householdService.checkInvitation(token);
+    return {
+      success: true,
+      data: invitationInfo,
     };
   }
 

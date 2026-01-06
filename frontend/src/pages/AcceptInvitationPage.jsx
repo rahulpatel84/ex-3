@@ -11,7 +11,7 @@ const AcceptInvitationPage = () => {
   const [status, setStatus] = useState('checking'); // checking, need-auth, accepting, success, error
   const [message, setMessage] = useState('');
   const [householdName, setHouseholdName] = useState('');
-  const [inviterName, setInviterName] = useState('');
+  const [invitationEmail, setInvitationEmail] = useState('');
   
   // Auth form state
   const [authMode, setAuthMode] = useState('login'); // login or signup
@@ -24,6 +24,10 @@ const AcceptInvitationPage = () => {
   const [authError, setAuthError] = useState('');
 
   useEffect(() => {
+    checkInvitationDetails();
+  }, [token]);
+
+  useEffect(() => {
     if (loading) return;
 
     // Store token for after auth
@@ -32,11 +36,27 @@ const AcceptInvitationPage = () => {
     if (isLoggedIn) {
       // User is already logged in, accept invitation directly
       acceptInvitation();
-    } else {
-      // Show login/signup options
-      setStatus('need-auth');
     }
   }, [isLoggedIn, loading, token]);
+
+  const checkInvitationDetails = async () => {
+    try {
+      setStatus('checking');
+      const invitationInfo = await householdService.checkInvitation(token);
+      
+      setHouseholdName(invitationInfo.householdName);
+      setInvitationEmail(invitationInfo.email);
+      
+      // Pre-fill email and set auth mode based on whether user exists
+      setFormData(prev => ({ ...prev, email: invitationInfo.email }));
+      setAuthMode(invitationInfo.userExists ? 'login' : 'signup');
+      
+      setStatus('need-auth');
+    } catch (error) {
+      setStatus('error');
+      setMessage(error.message || 'Invalid or expired invitation');
+    }
+  };
 
   const acceptInvitation = async () => {
     try {
@@ -170,34 +190,43 @@ const AcceptInvitationPage = () => {
                   </svg>
                 </div>
                 <h2 className="text-xl font-semibold text-gray-900">You're Invited!</h2>
-                <p className="mt-2 text-sm text-gray-600">
-                  Someone has invited you to track expenses together
+                {householdName && (
+                  <p className="mt-2 text-sm font-medium text-slate-700">
+                    Join: {householdName}
+                  </p>
+                )}
+                <p className="mt-1 text-sm text-gray-600">
+                  {authMode === 'login' 
+                    ? 'Log in to accept this invitation' 
+                    : 'Create an account to accept this invitation'}
                 </p>
               </div>
 
               {/* Auth Tabs */}
-              <div className="flex border-b border-gray-200">
-                <button
-                  onClick={() => setAuthMode('login')}
-                  className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                    authMode === 'login'
-                      ? 'text-slate-700 border-b-2 border-slate-700'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  I have an account
-                </button>
-                <button
-                  onClick={() => setAuthMode('signup')}
-                  className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                    authMode === 'signup'
-                      ? 'text-slate-700 border-b-2 border-slate-700'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  Create new account
-                </button>
-              </div>
+              {invitationEmail && (
+                <div className="flex border-b border-gray-200">
+                  <button
+                    onClick={() => setAuthMode('login')}
+                    className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                      authMode === 'login'
+                        ? 'text-slate-700 border-b-2 border-slate-700'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    I have an account
+                  </button>
+                  <button
+                    onClick={() => setAuthMode('signup')}
+                    className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                      authMode === 'signup'
+                        ? 'text-slate-700 border-b-2 border-slate-700'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Create new account
+                  </button>
+                </div>
+              )}
 
               {/* Auth Form */}
               <div className="p-6">
@@ -232,10 +261,13 @@ const AcceptInvitationPage = () => {
                       type="email"
                       required
                       value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent"
+                      readOnly
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
                       placeholder="your@email.com"
                     />
+                    <p className="mt-1 text-xs text-gray-500">
+                      This email was used for the invitation
+                    </p>
                   </div>
 
                   <div>

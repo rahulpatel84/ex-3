@@ -163,6 +163,26 @@ export const inviteMember = async (householdId, inviteData) => {
   }
 };
 
+// Check invitation details (public endpoint, no auth required)
+export const checkInvitation = async (token) => {
+  log.info('API', `Checking invitation with token`);
+  try {
+    const response = await fetch(`${API_URL}/households/invitations/${token}/check`);
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to check invitation');
+    }
+
+    log.success('API', 'Invitation checked', data.data);
+    return data.data;
+  } catch (error) {
+    log.error('API', 'Failed to check invitation', error.message);
+    throw error;
+  }
+};
+
 // Accept a household invitation
 export const acceptInvitation = async (token) => {
   log.info('API', `Accepting invitation with token`);

@@ -268,6 +268,48 @@ export class HouseholdService {
     return invitation;
   }
 
+  async checkInvitation(token: string) {
+    // Find invitation
+    const invitation = await this.prisma.invitation.findUnique({
+      where: { token },
+      include: {
+        household: {
+          select: { id: true, name: true, description: true },
+        },
+      },
+    });
+
+    if (!invitation) {
+      throw new NotFoundException('Invitation not found');
+    }
+
+    if (invitation.acceptedAt) {
+      throw new BadRequestException('Invitation has already been accepted');
+    }
+
+    if (invitation.declinedAt) {
+      throw new BadRequestException('Invitation has been declined');
+    }
+
+    if (invitation.expiresAt < new Date()) {
+      throw new BadRequestException('Invitation has expired');
+    }
+
+    // Check if user with this email exists
+    const userExists = await this.prisma.user.findUnique({
+      where: { email: invitation.email },
+      select: { id: true, email: true },
+    });
+
+    return {
+      email: invitation.email,
+      householdName: invitation.household.name,
+      role: invitation.role,
+      expiresAt: invitation.expiresAt,
+      userExists: !!userExists,
+    };
+  }
+
   async acceptInvitation(token: string, userId: string) {
     // Find invitation
     const invitation = await this.prisma.invitation.findUnique({
