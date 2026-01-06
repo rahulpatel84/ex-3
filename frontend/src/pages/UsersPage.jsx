@@ -21,16 +21,9 @@ const UsersPage = () => {
     try {
       setLoading(true);
       
-      console.log('🏠 Loading household for user:', { userId: user?.id, currentHouseholdId: user?.currentHouseholdId });
-      
       if (user?.currentHouseholdId) {
         const data = await householdService.getHousehold(user.currentHouseholdId);
-        console.log('🏠 Household data received:', JSON.stringify(data, null, 2));
-        console.log('🏠 Members in response:', data?.members?.length || 0);
-        console.log('🏠 Active members:', data?.members?.filter(m => m.status === 'active')?.length || 0);
         setHousehold(data);
-      } else {
-        console.log('⚠️ No currentHouseholdId for user');
       }
       // If no household, just show empty state - don't auto-create
     } catch (error) {
@@ -108,12 +101,7 @@ const UsersPage = () => {
   };
 
   const getCurrentUserRole = () => {
-    console.log('🔍 Getting user role:', { 
-      userId: user?.id, 
-      members: household?.members?.map(m => ({ id: m.id, userId: m.userId, role: m.role, status: m.status }))
-    });
     const member = household?.members?.find(m => m.userId === user?.id);
-    console.log('🔍 Found member:', member);
     return member?.role || 'member';
   };
 

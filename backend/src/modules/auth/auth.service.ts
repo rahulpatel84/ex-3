@@ -61,6 +61,7 @@ export class AuthService {
         currencyCode: true,
         emailVerified: true,
         onboardingCompleted: true,
+        currentHouseholdId: true,
         createdAt: true,
       },
     });
@@ -169,6 +170,7 @@ export class AuthService {
         currencyCode: userWithoutPassword.currencyCode,
         emailVerified: userWithoutPassword.emailVerified,
         onboardingCompleted: userWithoutPassword.onboardingCompleted,
+        currentHouseholdId: userWithoutPassword.currentHouseholdId,
       },
     };
   }
