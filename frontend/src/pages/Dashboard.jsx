@@ -42,7 +42,7 @@ const Dashboard = () => {
   useEffect(() => {
     loadData();
     loadCollaborators();
-  }, []);
+  }, [user?.currentHouseholdId]); // Reload when household changes
 
   const loadCollaborators = async () => {
     try {

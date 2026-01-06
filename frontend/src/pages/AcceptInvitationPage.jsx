@@ -76,10 +76,11 @@ const AcceptInvitationPage = () => {
       // Refresh user data to get updated household info
       await refreshUser();
       
-      // Redirect to dashboard after 3 seconds
+      // Wait a moment for state to update, then navigate to dashboard
+      // Dashboard will reload data automatically when user.currentHouseholdId changes
       setTimeout(() => {
-        navigate('/dashboard');
-      }, 3000);
+        navigate('/dashboard', { replace: true });
+      }, 1000);
     } catch (error) {
       setStatus('error');
       setMessage(error.message || 'Failed to accept invitation. It may have expired or already been used.');

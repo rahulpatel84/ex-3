@@ -398,18 +398,11 @@ export class HouseholdService {
       data: { acceptedAt: new Date() },
     });
 
-    // Set as current household if user doesn't have one
-    const userProfile = await this.prisma.user.findUnique({
+    // Always switch to the invited household (so they see shared data immediately)
+    await this.prisma.user.update({
       where: { id: userId },
-      select: { currentHouseholdId: true },
+      data: { currentHouseholdId: invitation.householdId },
     });
-
-    if (!userProfile.currentHouseholdId) {
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: { currentHouseholdId: invitation.householdId },
-      });
-    }
 
     return member;
   }
