@@ -15,10 +15,32 @@ export class ExpenseService {
     return user?.currentHouseholdId || null;
   }
 
-  async findAll(userId: string, filters?: { startDate?: string; endDate?: string; type?: string; categoryId?: string; includeDeleted?: string }) {
-    const householdId = await this.getUserHouseholdId(userId);
+  async findAll(userId: string, filters?: { startDate?: string; endDate?: string; type?: string; categoryId?: string; includeDeleted?: string; personal?: string; householdId?: string }) {
+    let where: any = {};
     
-    const where: any = householdId ? { householdId } : { userId };
+    if (filters?.personal === 'true') {
+      // Personal mode: Only show user's own expenses
+      where.userId = userId;
+    } else if (filters?.householdId) {
+      // Specific household mode: Show expenses for a specific household
+      // Verify user is a member of this household
+      const membership = await this.prisma.householdMember.findUnique({
+        where: {
+          householdId_userId: {
+            householdId: filters.householdId,
+            userId,
+          },
+        },
+      });
+      if (!membership || membership.status !== 'active') {
+        throw new ForbiddenException('You are not a member of this household');
+      }
+      where.householdId = filters.householdId;
+    } else {
+      // Default: Use user's current household or personal expenses
+      const householdId = await this.getUserHouseholdId(userId);
+      where = householdId ? { householdId } : { userId };
+    }
 
     // By default, exclude deleted expenses unless specifically requested
     if (filters?.includeDeleted !== 'true') {
@@ -263,10 +285,35 @@ export class ExpenseService {
   }
 
   // Analytics methods
-  async getAnalytics(userId: string, startDate?: string, endDate?: string) {
-    const householdId = await this.getUserHouseholdId(userId);
+  async getAnalytics(userId: string, startDate?: string, endDate?: string, personal?: string, householdIdParam?: string) {
+    let where: any = { deletedAt: null }; // Exclude deleted expenses from analytics
     
-    const where: any = householdId ? { householdId, deletedAt: null } : { userId, deletedAt: null }; // Exclude deleted expenses from analytics
+    if (personal === 'true') {
+      // Personal mode: Only user's own expenses
+      where.userId = userId;
+    } else if (householdIdParam) {
+      // Specific household mode
+      const membership = await this.prisma.householdMember.findUnique({
+        where: {
+          householdId_userId: {
+            householdId: householdIdParam,
+            userId,
+          },
+        },
+      });
+      if (!membership || membership.status !== 'active') {
+        throw new ForbiddenException('You are not a member of this household');
+      }
+      where.householdId = householdIdParam;
+    } else {
+      // Default: Use user's current household or personal expenses
+      const householdId = await this.getUserHouseholdId(userId);
+      if (householdId) {
+        where.householdId = householdId;
+      } else {
+        where.userId = userId;
+      }
+    }
 
     if (startDate || endDate) {
       where.date = {};

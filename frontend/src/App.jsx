@@ -17,6 +17,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import Dashboard from './pages/Dashboard';
+import SharedDashboard from './pages/SharedDashboard';
 import SettingsPage from './pages/SettingsPage';
 import AcceptInvitationPage from './pages/AcceptInvitationPage';
 
@@ -50,6 +51,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <SettingsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/shared/:householdId"
+            element={
+              <ProtectedRoute>
+                <SharedDashboard />
               </ProtectedRoute>
             }
           />

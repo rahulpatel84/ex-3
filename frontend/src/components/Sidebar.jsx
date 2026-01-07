@@ -1,13 +1,39 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import * as householdService from '../services/householdService';
 
 const Sidebar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [sharedHouseholds, setSharedHouseholds] = useState([]);
 
   const isActive = (path) => location.pathname === path;
+  const isSharedActive = (householdId) => location.pathname === `/shared/${householdId}`;
+
+  // Load shared households where user is a member (not owner)
+  useEffect(() => {
+    const loadSharedHouseholds = async () => {
+      try {
+        if (user?.householdMemberships) {
+          // Filter memberships where user is NOT the owner
+          const shared = user.householdMemberships
+            .filter(m => m.role !== 'owner' && m.household)
+            .map(m => ({
+              id: m.household.id,
+              name: m.household.name,
+              ownerName: m.household.ownerName || 'Unknown',
+            }));
+          setSharedHouseholds(shared);
+        }
+      } catch (err) {
+        console.error('Failed to load shared households:', err);
+      }
+    };
+
+    loadSharedHouseholds();
+  }, [user?.householdMemberships]);
 
   const menuItems = [
     {
@@ -69,6 +95,37 @@ const Sidebar = () => {
           ))}
         </nav>
       </div>
+
+      {/* Shared Section - Only show if user has shared households */}
+      {sharedHouseholds.length > 0 && (
+        <div className="px-4 py-2">
+          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-3">
+            Shared With Me
+          </div>
+          <nav className="space-y-1">
+            {sharedHouseholds.map((household) => (
+              <button
+                key={household.id}
+                onClick={() => navigate(`/shared/${household.id}`)}
+                className={`
+                  w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                  ${isSharedActive(household.id)
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }
+                `}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <div className="flex-1 text-left">
+                  <span className="block truncate">{household.name}</span>
+                </div>
+              </button>
+            ))}
+          </nav>
+        </div>
+      )}
 
       {/* User Section - Bottom */}
       <div className="mt-auto border-t border-gray-200">

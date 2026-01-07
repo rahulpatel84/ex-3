@@ -4,6 +4,14 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 /**
  * GET ALL EXPENSES
+ * @param {object} filters - Filter options
+ * @param {string} filters.startDate - Start date filter
+ * @param {string} filters.endDate - End date filter
+ * @param {string} filters.type - Type filter (expense/income)
+ * @param {string} filters.categoryId - Category filter
+ * @param {string} filters.includeDeleted - Include deleted expenses
+ * @param {boolean} filters.personal - Get only user's personal expenses
+ * @param {string} filters.householdId - Get expenses for a specific household
  */
 export const getAllExpenses = async (filters = {}) => {
   const queryParams = new URLSearchParams();
@@ -13,6 +21,8 @@ export const getAllExpenses = async (filters = {}) => {
   if (filters.type) queryParams.append('type', filters.type);
   if (filters.categoryId) queryParams.append('categoryId', filters.categoryId);
   if (filters.includeDeleted) queryParams.append('includeDeleted', filters.includeDeleted);
+  if (filters.personal) queryParams.append('personal', 'true');
+  if (filters.householdId) queryParams.append('householdId', filters.householdId);
 
   const queryString = queryParams.toString();
   const url = `/expenses${queryString ? `?${queryString}` : ''}`;
@@ -114,11 +124,18 @@ export const deleteExpense = async (id) => {
 
 /**
  * GET ANALYTICS
+ * @param {object} options - Options
+ * @param {string} options.startDate - Start date
+ * @param {string} options.endDate - End date
+ * @param {boolean} options.personal - Get only personal analytics
+ * @param {string} options.householdId - Get analytics for a specific household
  */
-export const getAnalytics = async (startDate, endDate) => {
+export const getAnalytics = async (options = {}) => {
   const queryParams = new URLSearchParams();
-  if (startDate) queryParams.append('startDate', startDate);
-  if (endDate) queryParams.append('endDate', endDate);
+  if (options.startDate) queryParams.append('startDate', options.startDate);
+  if (options.endDate) queryParams.append('endDate', options.endDate);
+  if (options.personal) queryParams.append('personal', 'true');
+  if (options.householdId) queryParams.append('householdId', options.householdId);
 
   const queryString = queryParams.toString();
   const url = `/expenses/analytics${queryString ? `?${queryString}` : ''}`;

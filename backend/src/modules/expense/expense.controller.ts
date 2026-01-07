@@ -17,6 +17,8 @@ export class ExpenseController {
     @Query('type') type?: string,
     @Query('categoryId') categoryId?: string,
     @Query('includeDeleted') includeDeleted?: string,
+    @Query('personal') personal?: string,
+    @Query('householdId') householdId?: string,
   ) {
     const expenses = await this.expenseService.findAll(req.user.id, {
       startDate,
@@ -24,6 +26,8 @@ export class ExpenseController {
       type,
       categoryId,
       includeDeleted,
+      personal,
+      householdId,
     });
 
     return {
@@ -37,8 +41,10 @@ export class ExpenseController {
     @Req() req: any,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('personal') personal?: string,
+    @Query('householdId') householdId?: string,
   ) {
-    const analytics = await this.expenseService.getAnalytics(req.user.id, startDate, endDate);
+    const analytics = await this.expenseService.getAnalytics(req.user.id, startDate, endDate, personal, householdId);
 
     return {
       success: true,

@@ -39,14 +39,21 @@ const Dashboard = () => {
     paymentMethod: 'cash',
   });
 
+  // Check if user is owner of their current household
+  const isOwner = user?.householdMemberships?.some(m => 
+    m.householdId === user.currentHouseholdId && m.role === 'owner'
+  );
+
   useEffect(() => {
     loadData();
-    loadCollaborators();
-  }, [user?.currentHouseholdId]); // Reload when household changes
+    if (isOwner) {
+      loadCollaborators();
+    }
+  }, [user?.currentHouseholdId, isOwner]);
 
   const loadCollaborators = async () => {
     try {
-      if (user?.currentHouseholdId) {
+      if (user?.currentHouseholdId && isOwner) {
         const household = await householdService.getHousehold(user.currentHouseholdId);
         setCollaborators(household.members?.filter(m => m.status === 'active') || []);
         setPendingInvites(household.invitations?.filter(i => !i.acceptedAt && !i.declinedAt) || []);
@@ -83,11 +90,15 @@ const Dashboard = () => {
     setLoading(true);
     setError('');
     try {
+      // If user is owner, show household data; if member, show only personal data
+      const expenseFilters = isOwner ? {} : { personal: true };
+      const analyticsOptions = isOwner ? {} : { personal: true };
+      
       const [expensesData, deletedData, categoriesData, analyticsData] = await Promise.all([
-        getAllExpenses(),
-        getAllExpenses({ includeDeleted: 'true' }),
+        getAllExpenses(expenseFilters),
+        getAllExpenses({ ...expenseFilters, includeDeleted: 'true' }),
         getAllCategories(),
-        getAnalytics(),
+        getAnalytics(analyticsOptions),
       ]);
 
       setExpenses(expensesData);
@@ -191,20 +202,23 @@ const Dashboard = () => {
               <p className="text-sm text-gray-500 mt-1">Track and manage your expenses</p>
             </div>
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowShareModal(true)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                </svg>
-                Share
-                {collaborators.length > 1 && (
-                  <span className="ml-1 px-1.5 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full">
-                    {collaborators.length}
-                  </span>
-                )}
-              </button>
+              {/* Only show Share button if user is the owner */}
+              {isOwner && (
+                <button
+                  onClick={() => setShowShareModal(true)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                  </svg>
+                  Share
+                  {collaborators.length > 1 && (
+                    <span className="ml-1 px-1.5 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full">
+                      {collaborators.length}
+                    </span>
+                  )}
+                </button>
+              )}
               <button
                 onClick={() => setShowAddExpense(!showAddExpense)}
                 className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 font-medium text-sm transition-colors flex items-center gap-2"
@@ -664,8 +678,8 @@ const Dashboard = () => {
         </main>
       </div>
 
-      {/* Share Modal */}
-      {showShareModal && (
+      {/* Share Modal - Only for owners */}
+      {isOwner && showShareModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-md mx-4 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">

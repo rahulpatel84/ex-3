@@ -545,6 +545,16 @@ export class AuthService {
                 id: true,
                 name: true,
                 description: true,
+                createdBy: true,
+                members: {
+                  where: { role: 'owner' },
+                  include: {
+                    user: {
+                      select: { fullName: true },
+                    },
+                  },
+                  take: 1,
+                },
               },
             },
           },
@@ -570,10 +580,26 @@ export class AuthService {
       }
     }
 
+    // Format household memberships with owner name
+    const formattedMemberships = user.householdMemberships.map(m => {
+      const ownerMember = m.household.members?.[0];
+      return {
+        householdId: m.household.id,
+        role: m.role,
+        household: {
+          id: m.household.id,
+          name: m.household.name,
+          description: m.household.description,
+          ownerName: ownerMember?.user?.fullName || 'Unknown',
+        },
+      };
+    });
+
     return {
       ...user,
+      householdMemberships: formattedMemberships,
       currentHousehold,
-      households: user.householdMemberships.map(m => ({
+      households: formattedMemberships.map(m => ({
         ...m.household,
         role: m.role,
       })),
